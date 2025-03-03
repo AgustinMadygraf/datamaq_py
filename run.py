@@ -5,7 +5,8 @@ procesando operaciones Modbus continuamente.
 """
 
 import sys
-from utils.logging.dependency_injection import get_logger
+import platform
+from utils.logging.dependency_injection import get_logger, log_debug, enable_verbose_debug
 from utils.logging.error_manager import init_error_manager, critical_error
 from src.controllers.system import main_loop
 
@@ -14,7 +15,16 @@ if __name__ == "__main__":
     try:
         # Configurar logging
         logger = get_logger()
-        logger.info("Iniciando aplicación de Visión Artificial...")
+        logger.info('Iniciando aplicación "DataMaq" ')
+        
+        # Activar modo debug verbose en entorno de desarrollo
+        if "--verbose" in sys.argv:
+            enable_verbose_debug(True)
+            log_debug("Modo debug verbose activado por argumento de línea de comandos")
+        
+        # Registrar información del sistema
+        log_debug(f"Sistema operativo: {platform.system()} {platform.release()}")
+        log_debug(f"Versión Python: {platform.python_version()}")
 
         # Inicializar el gestor de errores con el logger
         init_error_manager(logger)

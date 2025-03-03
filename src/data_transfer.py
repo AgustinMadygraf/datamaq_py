@@ -17,7 +17,13 @@ def send_data_php(): # ver s ino es codigo muerto
     "Envía los datos a través de un script PHP."
     php_interpreter = "C://AppServ//php7//php.exe"
     php_script = "C://AppServ//www//DataMaq//includes//SendData_python.php"
-    result = subprocess.run([php_interpreter, php_script], capture_output=True, text=True, shell=True, check=True)
+    result = subprocess.run(
+        [php_interpreter, php_script],
+        capture_output=True,
+        text=True,
+        shell=True,
+        check=True
+    )
     if result.returncode == 0:
         logger.info("Script PHP ejecutado exitosamente. Salida:")
         logger.info(result.stdout)

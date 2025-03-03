@@ -14,6 +14,10 @@ from typing import Optional, List, Any, Dict, Set
 
 from utils.logging.logger_factory import LoggerFactory
 
+# Bandera global para controlar el nivel de detalle del debug
+# Se puede modificar en tiempo de ejecución según el entorno
+DEBUG_VERBOSE = False
+
 class LoggerConfigurator:
     """Configurador de logging para la aplicación."""
 
@@ -416,6 +420,30 @@ class LoggerConfigurator:
             '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
         )
 
+    def log_debug(self, logger: logging.Logger, message: str, *args, **kwargs) -> None:
+        """
+        Función centralizada para el logging de mensajes de debug.
+        Permite controlar de forma centralizada el nivel de detalle de los logs.
+        
+        Args:
+            logger: Logger a utilizar
+            message: Mensaje a registrar
+            *args: Argumentos posicionales para el mensaje
+            **kwargs: Argumentos con nombre para la llamada al logger
+        """
+        # Si el modo verbose está activado, añadimos información extra
+        if DEBUG_VERBOSE:
+            # Obtener información del llamador
+            caller_frame = sys._getframe(1)
+            caller_info = f"[{os.path.basename(caller_frame.f_code.co_filename)}:{caller_frame.f_lineno}]"
+            
+            # Añadir información del llamador al mensaje
+            enhanced_message = f"{caller_info} {message}"
+            logger.debug(enhanced_message, *args, **kwargs)
+        else:
+            # Comportamiento normal
+            logger.debug(message, *args, **kwargs)
+
 
 def get_logger(name: str = "datamaq") -> logging.Logger:
     """
@@ -431,3 +459,44 @@ def get_logger(name: str = "datamaq") -> logging.Logger:
     logger = LoggerFactory.get_logger(name)
     logger.debug(f"Logger '{name}' obtenido de LoggerFactory")
     return logger
+
+
+def set_debug_verbose(enabled: bool = True) -> None:
+    """
+    Activa o desactiva el modo verbose para mensajes de debug.
+    
+    Args:
+        enabled: True para activar, False para desactivar
+    """
+    global DEBUG_VERBOSE
+    DEBUG_VERBOSE = enabled
+    # Obtener un logger para registrar el cambio
+    logger = get_logger("logging_system")
+    level_str = "ACTIVADO" if enabled else "DESACTIVADO"
+    logger.info(f"Modo DEBUG_VERBOSE {level_str}")
+
+
+def get_debug_verbose() -> bool:
+    """
+    Obtiene el estado actual del modo verbose para debug.
+    
+    Returns:
+        True si está activado, False si no
+    """
+    global DEBUG_VERBOSE
+    return DEBUG_VERBOSE
+
+
+def log_debug(message: str, *args, **kwargs) -> None:
+    """
+    Función global para logging centralizado de mensajes de debug.
+    Utiliza el logger por defecto.
+    
+    Args:
+        message: Mensaje a registrar
+        *args: Argumentos posicionales para el mensaje
+        **kwargs: Argumentos con nombre para la llamada al logger
+    """
+    logger = LoggerFactory.get_default_logger()
+    configurator = LoggerConfigurator()
+    configurator.log_debug(logger, message, *args, **kwargs)

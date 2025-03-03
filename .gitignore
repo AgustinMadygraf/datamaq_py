@@ -9,3 +9,5 @@ utils/logging/__pycache__/
 logs/app.log
 logs/error.log
 logs/debug.log
+src/docs/00-Prompt-for-ProjectAnalysis.md
+docs/todo.md
