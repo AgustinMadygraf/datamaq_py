@@ -21,6 +21,10 @@ def main_transfer_controller():
         logger.info("Iniciando transferencia de datos.")
         transfer_production_log_service()
         transfer_interval_production_service()
-        send_data_php_service()
+        
+        # Try to execute PHP script, but continue if it fails
+        php_success = send_data_php_service()
+        if not php_success:
+            logger.warning("La transferencia de datos PHP falló, pero el programa continuará ejecutándose.")
     else:
         logger.info("No es momento de transferir datos. Esperando la próxima verificación.")

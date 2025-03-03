@@ -5,7 +5,13 @@ Este módulo se encarga de procesar las operaciones Modbus,
 
 import minimalmodbus
 from src.db_operations import check_db_connection, update_database
-from src.controller import read_digital_input, ModbusConnectionError, detect_serial_ports
+from src.controller import read_digital_input
+from src.utils.modbus_connection import (
+    inicializar_conexion_modbus, 
+    establish_modbus_connection, 
+    safe_modbus_read, 
+    ModbusConnectionError
+)
 from utils.logging.dependency_injection import get_logger
 
 logger = get_logger()
@@ -39,22 +45,6 @@ def establish_db_connection():
         raise DatabaseConnectionError("Error de conexión a la base de datos")
     return engine
 
-def establish_modbus_connection(com_port, device_address):
-    "Establece la conexión con el dispositivo Modbus."
-    return establish_connection(
-        lambda: minimalmodbus.Instrument(com_port, device_address),
-        "Error al configurar el puerto serie", 
-        ModbusConnectionError
-    )
-
-def establish_connection(connect_func, error_message, error_exception):
-    " Establece una conexión segura y maneja errores."
-    try:
-        return connect_func()
-    except minimalmodbus.ModbusException as e:
-        logger.error(f"{error_message}: {e}")
-        raise error_exception(f"{error_message}. Detalles: {e}") from e
-
 def process_digital_input(instrument):
     " Procesa las entradas digitales y actualiza la base de datos."
     process_input_and_update(instrument, read_digital_input, D1, "HR_INPUT1_STATE")
@@ -84,14 +74,6 @@ def update_register_value(instrument, register, description):
     if value is not None:
         update_database(register, value, descripcion=description)
 
-def safe_modbus_read(method, *args, **kwargs):
-    "Realiza una lectura segura de un dispositivo Modbus."
-    try:
-        return method(*args, **kwargs)
-    except Exception as e:
-        logger.error(f"Error al leer del dispositivo Modbus: {e}")
-        return None
-
 class DatabaseConnectionError(Exception):
     """Excepción para errores de conexión con la base de datos."""
     pass
@@ -99,21 +81,3 @@ class DatabaseConnectionError(Exception):
 class ModbusReadError(Exception):
     """Excepción para errores de lectura del dispositivo Modbus."""
     pass
-
-def inicializar_conexion_modbus():
-    "Inicializa la conexión Modbus."
-
-    device_address = 1
-    device_description = "DigiRail Connect"
-    com_port = detect_serial_ports(device_description)
-    if com_port:
-        logger.info(f"Puerto {device_description} detectado: {com_port}")
-    else:
-        device_description = "USB-SERIAL CH340"
-        com_port = detect_serial_ports(device_description)
-        if com_port:
-            logger.info(f"Puerto detectado: {com_port}")
-        else:
-            logger.error("No se detectaron puertos COM para el dispositivo.")
-            exit()
-    return com_port, device_address

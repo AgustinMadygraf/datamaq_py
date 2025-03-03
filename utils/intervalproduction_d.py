@@ -25,7 +25,7 @@ def load_csv_to_mysql(csv_path):
     # Establecer conexión a la base de datos
     connection = check_db_connection()
     if connection is None:
-        print("Error al conectar con la base de datos.")
+        logger.info("Error al conectar con la base de datos.")
         return
     
     # Abrir el archivo CSV
@@ -44,7 +44,7 @@ def load_csv_to_mysql(csv_path):
             
             # Ejecutar la consulta
             if not execute_query(connection, query, params):
-                print(f"Error al insertar el registro {unixtime, hr_counter1, hr_counter2}")
+                logger.info(f"Error al insertar el registro {unixtime, hr_counter1, hr_counter2}")
     
     # Cerrar la conexión
     connection.close()

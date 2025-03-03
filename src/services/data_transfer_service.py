@@ -83,19 +83,27 @@ def send_data_php_service():
     "Envía los datos a través de un script PHP."
     php_interpreter = "C://AppServ//php7//php.exe"
     php_script = "C://AppServ//www//DataMaq//includes//SendData_python.php"
-    result = subprocess.run(
-        [php_interpreter, php_script],
-        capture_output=True,
-        text=True,
-        shell=True,
-        check=True
-    )
-    if result.returncode == 0:
-        logger.info("Script PHP ejecutado exitosamente. Salida:")
-        logger.info(result.stdout)
-    else:
-        logger.error("Error al ejecutar el script PHP. Código de salida: %s", result.returncode)
-        logger.error(result.stderr)
+    try:
+        # Removed check=True to prevent exceptions
+        result = subprocess.run(
+            [php_interpreter, php_script],
+            capture_output=True,
+            text=True,
+            shell=True
+        )
+        if result.returncode == 0:
+            logger.info("Script PHP ejecutado exitosamente. Salida:")
+            logger.info(result.stdout)
+            return True
+        else:
+            logger.error("Error al ejecutar el script PHP. Código de salida: %s", result.returncode)
+            logger.error("Mensaje de error: %s", result.stderr)
+            # Log the command that was run for debugging purposes
+            logger.error("Comando ejecutado: %s %s", php_interpreter, php_script)
+            return False
+    except Exception as e:
+        logger.error("Excepción al ejecutar el script PHP: %s", str(e))
+        return False
 
 def transferir_datos_service(consulta1, consulta2, num_filas):
     "Transfiere los datos de una consulta a la base de datos."

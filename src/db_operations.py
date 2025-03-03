@@ -130,7 +130,7 @@ def reconnect_on_failure(func):
         try:
             return func(*args, **kwargs)
         except (pymysql.OperationalError, pymysql.MySQLError) as e:
-            print(
+            logger.info(
                 f"Se detectó un error en la conexión a la base de datos: {e}. "
                 "Intentando reconectar..."
             )
@@ -140,7 +140,7 @@ def reconnect_on_failure(func):
                 args = (connection,) + args[1:]
                 return func(*args, **kwargs)
             except pymysql.MySQLError as reconnection_error:
-                print(f"No se pudo reconectar a la base de datos: {reconnection_error}")
+                logger.info(f"No se pudo reconectar a la base de datos: {reconnection_error}")
                 return None
     return wrapper_reconnect
 

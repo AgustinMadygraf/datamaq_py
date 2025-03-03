@@ -30,9 +30,9 @@ def calcular_diferenciales(registro_actual, registro_anterior):
     datetime_anterior = registro_anterior['datetime'].strftime('%Y-%m-%d %H:%M:%S')
 
     # Mostrar cómo se calculó el valor
-    print(f"\n\nPara datetime {datetime_actual} (unixtime {registro_actual['unixtime']}):")
-    print(f"  - HR_COUNTER1 calculado como diferencia de {registro_actual['HR_COUNTER1_LO']} ({datetime_actual}) - {registro_anterior['HR_COUNTER1_LO']} ({datetime_anterior}) = {diff_hr_counter1}")
-    print(f"  - HR_COUNTER2 calculado como diferencia de {registro_actual['HR_COUNTER2_LO']} ({datetime_actual}) - {registro_anterior['HR_COUNTER2_LO']} ({datetime_anterior}) = {diff_hr_counter2}")
+    logger.info(f"\n\nPara datetime {datetime_actual} (unixtime {registro_actual['unixtime']}):")
+    logger.info(f"  - HR_COUNTER1 calculado como diferencia de {registro_actual['HR_COUNTER1_LO']} ({datetime_actual}) - {registro_anterior['HR_COUNTER1_LO']} ({datetime_anterior}) = {diff_hr_counter1}")
+    logger.info(f"  - HR_COUNTER2 calculado como diferencia de {registro_actual['HR_COUNTER2_LO']} ({datetime_actual}) - {registro_anterior['HR_COUNTER2_LO']} ({datetime_anterior}) = {diff_hr_counter2}")
 
     return diff_hr_counter1, diff_hr_counter2
 
@@ -77,7 +77,7 @@ def restituir_registros():
                 
                 cursor.execute("SELECT COUNT(*) AS count FROM intervalproduction WHERE unixtime = %s", (registro_actual['unixtime'],))
                 if cursor.fetchone()['count'] == 0:
-                    print(f"Diferenciales calculados: HR_COUNTER1 = {diff_hr_counter1}, HR_COUNTER2 = {diff_hr_counter2}")
+                    logger.info(f"Diferenciales calculados: HR_COUNTER1 = {diff_hr_counter1}, HR_COUNTER2 = {diff_hr_counter2}")
                     #respuesta = input("¿Desea insertar este registro en la base de datos con los diferenciales calculados (s) o con valores cero (0)?: ")
                     respuesta = '0'
                     if respuesta.lower() == 's':

@@ -6,7 +6,7 @@ Este módulo se encarga de ejecutar el bucle principal del programa.
 import time
 import signal
 import platform
-from utils.logging.dependency_injection import get_logger, log_debug
+from utils.logging.dependency_injection import get_logger
 from src.controllers.modbus_processor import process_modbus_operations
 from src.data_transfer import main_transfer
 from src.controller import limpiar_pantalla
@@ -31,12 +31,12 @@ def setup_signal_handlers():
         logger.info("Configurando manejadores de señales para sistema Unix")
         signal.signal(signal.SIGINT, handle_signal)
         signal.signal(signal.SIGTERM, handle_signal)
-        log_debug("Manejadores de señal SIGINT y SIGTERM configurados")
+        logger.debug("Manejadores de señal SIGINT y SIGTERM configurados")
         return True
     else:
         # En Windows, las señales funcionan de manera diferente
         logger.info("Sistema Windows detectado, no se configuran señales POSIX")
-        log_debug("En Windows, las señales POSIX no están disponibles, usando KeyboardInterrupt")
+        logger.debug("En Windows, las señales POSIX no están disponibles, usando KeyboardInterrupt")
         return False
 
 def handle_signal(signum, frame):
@@ -44,7 +44,7 @@ def handle_signal(signum, frame):
     global running
     running = False
     logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")
-    log_debug(f"Manejador de señal invocado: signum={signum}")
+    logger.debug(f"Manejador de señal invocado: signum={signum}")
 
 def main_loop():
     """Ejecuta el bucle principal del programa."""
@@ -54,19 +54,25 @@ def main_loop():
     # Configurar manejadores de señales según el sistema operativo
     setup_signal_handlers()
     
-    log_debug("Esperando 5 segundos antes de iniciar el bucle principal")
-    time.sleep(5)
 
     try:
-        log_debug("Iniciando bucle principal")
+        logger.debug("Iniciando bucle principal")
         while running:
-            logger.info("Ejecutando iteración del bucle principal.")
-            main_transfer()
-            process_modbus_operations()
-            time.sleep(1)
-            limpiar_pantalla()
+            execute_main_operations()
     except KeyboardInterrupt:
-        # Capturar Ctrl+C en Windows
-        logger.info("Interrupción de teclado (Ctrl+C) recibida. Terminando el bucle principal...")
-        log_debug("Excepción KeyboardInterrupt capturada en main_loop")
-        running = False
+        handle_keyboard_interrupt()
+
+def execute_main_operations():
+    """Ejecuta las operaciones principales del bucle."""
+    logger.info("Ejecutando iteración del bucle principal.")
+    main_transfer()
+    process_modbus_operations()
+    time.sleep(1)
+    limpiar_pantalla()
+
+def handle_keyboard_interrupt():
+    """Maneja la interrupción de teclado (Ctrl+C)."""
+    global running
+    logger.info("Interrupción de teclado (Ctrl+C) recibida. Terminando el bucle principal...")
+    logger.debug("Excepción KeyboardInterrupt capturada en main_loop")
+    running = False
