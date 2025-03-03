@@ -4,11 +4,11 @@ Este módulo se encarga de procesar las operaciones Modbus,
 """
 
 import minimalmodbus
-from src.logs.config_logger import configurar_logging
 from src.db_operations import check_db_connection, update_database
 from src.controller import read_digital_input, ModbusConnectionError, detect_serial_ports
+from utils.logging.dependency_injection import get_logger
 
-logger = configurar_logging()
+logger = get_logger()
 
 # Constantes (se reutilizan las mismas definiciones)
 D1 = 70
@@ -28,7 +28,7 @@ def process_modbus_operations():
 
     establish_db_connection()
     instrument = establish_modbus_connection(com_port, device_address)
-   
+
     process_digital_input(instrument)
     process_high_resolution_register(instrument)
 
@@ -42,7 +42,7 @@ def establish_db_connection():
 def establish_modbus_connection(com_port, device_address):
     "Establece la conexión con el dispositivo Modbus."
     return establish_connection(
-        lambda: minimalmodbus.Instrument(com_port, device_address), 
+        lambda: minimalmodbus.Instrument(com_port, device_address),
         "Error al configurar el puerto serie", 
         ModbusConnectionError
     )
@@ -51,7 +51,7 @@ def establish_connection(connect_func, error_message, error_exception):
     " Establece una conexión segura y maneja errores."
     try:
         return connect_func()
-    except Exception as e:
+    except minimalmodbus.ModbusException as e:
         logger.error(f"{error_message}: {e}")
         raise error_exception(f"{error_message}. Detalles: {e}") from e
 
@@ -67,7 +67,9 @@ def process_input_and_update(instrument, read_function, address, description):
         if state is not None:
             update_database(address, state, descripcion=description)
     except minimalmodbus.ModbusException as e:
-        raise ModbusReadError(f"Error al leer la dirección {address} del dispositivo Modbus: {e}") from e
+        raise ModbusReadError(
+            f"Error al leer la dirección {address} del dispositivo Modbus: {e}"
+        ) from e
 
 def process_high_resolution_register(instrument):
     "Procesa los registros de alta resolución y actualiza la base de datos."
@@ -102,12 +104,12 @@ def inicializar_conexion_modbus():
     "Inicializa la conexión Modbus."
 
     device_address = 1
-    device_description = "DigiRail Connect"  
+    device_description = "DigiRail Connect"
     com_port = detect_serial_ports(device_description)
     if com_port:
         logger.info(f"Puerto {device_description} detectado: {com_port}")
     else:
-        device_description = "USB-SERIAL CH340"  
+        device_description = "USB-SERIAL CH340"
         com_port = detect_serial_ports(device_description)
         if com_port:
             logger.info(f"Puerto detectado: {com_port}")

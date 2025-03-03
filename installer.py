@@ -2,12 +2,12 @@
 import subprocess
 import os
 import sys
-from src.logs.config_logger import configurar_logging
+from utils.logging.dependency_injection import get_logger
 import winshell
 from win32com.client import Dispatch
 
 # Configuración del logger
-logger = configurar_logging()
+logger = get_logger()
 
 def crear_acceso_directo(ruta_archivo_bat, directorio_script):
     escritorio = winshell.desktop()

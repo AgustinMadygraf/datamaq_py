@@ -3,18 +3,21 @@ Path: src/db_operations.py
 Este script se ocupa de realizar operaciones de base de datos, como actualizaciones y consultas.
 """
 
-import pymysql
-from src.logs.config_logger import configurar_logging
 import functools
 import os
+import pymysql
 from sqlalchemy import create_engine, text
+from utils.logging.dependency_injection import get_logger
 
-logger = configurar_logging()
+logger = get_logger()
 
 def get_db_engine():
     " Obtiene un objeto de engine de SQLAlchemy para la base de datos."
     config = get_db_config()
-    conn_str = f"mysql+pymysql://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['db']}"
+    conn_str = (
+        f"mysql+pymysql://{config['user']}:{config['password']}@"
+        f"{config['host']}:{config['port']}/{config['db']}"
+    )
     engine = create_engine(conn_str, pool_pre_ping=True)
     return engine
 
@@ -27,8 +30,10 @@ def update_database(address, value, descripcion):
     """
     Actualiza un registro en la base de datos con un valor específico.
 
-    Esta función construye y ejecuta una consulta SQL para actualizar un registro en la base de datos.
-    Imprime un mensaje indicando si la actualización fue exitosa o no. En caso de errores en la ejecución
+    Esta función construye y ejecuta una consulta SQL
+    para actualizar un registro en la base de datos.
+    Imprime un mensaje indicando si la actualización fue exitosa o no. 
+    En caso de errores en la ejecución
     de la consulta, lanza una excepción personalizada `DatabaseUpdateError`.
 
     Args:
@@ -47,8 +52,11 @@ def update_database(address, value, descripcion):
     try:
         with engine.begin() as conn:
             conn.execute(text(query), params)
-        logger.info(f"Registro actualizado: dirección {address}, descripción: {descripcion} valor {value}")
-    except Exception as e:
+        logger.info(
+            f"Registro actualizado: dirección {address}, "
+            f"descripción: {descripcion} valor {value}"
+        )
+    except (pymysql.OperationalError, pymysql.MySQLError) as e:
         logger.error(f"Error al actualizar el registro: dirección {address}, {descripcion}: {e}")
         raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
 
@@ -65,7 +73,8 @@ def build_update_query(address, value):
         value: El nuevo valor a asignar en el registro especificado.
 
     Returns:
-        tuple: Una tupla conteniendo la consulta SQL como string y los parámetros como un diccionario.
+        tuple: Una tupla conteniendo la consulta SQL como string 
+        y los parámetros como un diccionario.
     """
     query = "UPDATE registros_modbus SET valor = :valor WHERE direccion_modbus = :direccion"
     params = {'valor': value, 'direccion': address}
@@ -75,8 +84,10 @@ def execute_query(connection, query, params):
     """
     Ejecuta una consulta SQL en la base de datos especificada.
 
-    Esta función intenta ejecutar una consulta SQL utilizando la conexión y los parámetros proporcionados.
-    En caso de éxito, confirma (commit) la transacción. Si ocurre un error durante la ejecución de la consulta,
+    Esta función intenta ejecutar una consulta SQL utilizando 
+    la conexión y los parámetros proporcionados.
+    En caso de éxito, confirma (commit) la transacción. Si ocurre 
+    un error durante la ejecución de la consulta,
     imprime un mensaje de error y retorna False.
 
     Args:
@@ -96,7 +107,7 @@ def execute_query(connection, query, params):
             cursor.execute(query, params)
             connection.commit()
         return True
-    except Exception as e:
+    except (pymysql.OperationalError, pymysql.MySQLError) as e:
         logger.error(f"Error al ejecutar la consulta en la base de datos: {e}")
         return False
 
@@ -119,14 +130,17 @@ def reconnect_on_failure(func):
         try:
             return func(*args, **kwargs)
         except (pymysql.OperationalError, pymysql.MySQLError) as e:
-            print(f"Se detectó un error en la conexión a la base de datos: {e}. Intentando reconectar...")
+            print(
+                f"Se detectó un error en la conexión a la base de datos: {e}. "
+                "Intentando reconectar..."
+            )
             try:
-                db_config = get_db_config()  # Obtener la configuración actualizada de la base de datos
+                db_config = get_db_config()
                 connection = pymysql.connect(**db_config)
                 args = (connection,) + args[1:]
                 return func(*args, **kwargs)
-            except Exception as e:
-                print(f"No se pudo reconectar a la base de datos: {e}")
+            except pymysql.MySQLError as reconnection_error:
+                print(f"No se pudo reconectar a la base de datos: {reconnection_error}")
                 return None
     return wrapper_reconnect
 
@@ -160,4 +174,3 @@ def get_db_config():
         'db': 'novus',
         'port': 3306  
     }
-

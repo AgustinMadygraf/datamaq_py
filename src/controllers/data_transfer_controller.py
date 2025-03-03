@@ -1,6 +1,7 @@
 """
 Path: src/controllers/data_transfer_controller.py
-Este script se encarga de controlar la transferencia de datos entre la base de datos y el servidor PHP.
+Este script se encarga de controlar la transferencia de datos 
+entre la base de datos y el servidor PHP.
 """
 
 from src.services.data_transfer_service import (
@@ -9,11 +10,13 @@ from src.services.data_transfer_service import (
     send_data_php_service,
     es_tiempo_cercano_multiplo_cinco_service
 )
-from src.logs.config_logger import configurar_logging
+from utils.logging.dependency_injection import get_logger
 
-logger = configurar_logging()
+logger = get_logger()
 
 def main_transfer_controller():
+    """Función principal que controla la transferencia de datos entre 
+    la base de datos y el servidor PHP."""
     if es_tiempo_cercano_multiplo_cinco_service():
         logger.info("Iniciando transferencia de datos.")
         transfer_production_log_service()

@@ -4,9 +4,9 @@ Este módulo se encarga de manejar los datos de la base de datos.
 """
 
 import pymysql
-from src.logs.config_logger import configurar_logging
+from utils.logging.dependency_injection import get_logger
 
-logger = configurar_logging()
+logger = get_logger()
 
 def obtener_datos(cursor, consulta):
     "Obtiene los datos de una consulta."

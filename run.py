@@ -4,11 +4,30 @@ Este script se ocupa de ejecutar el bucle principal del programa,
 procesando operaciones Modbus continuamente.
 """
 
-from src.logs.config_logger import configurar_logging
+import sys
+from utils.logging.dependency_injection import get_logger
+from utils.logging.error_manager import init_error_manager, critical_error
 from src.controllers.system import main_loop
 
-# Configurar logging
-logger = configurar_logging()
 
 if __name__ == "__main__":
-    main_loop()
+    try:
+        # Configurar logging
+        logger = get_logger()
+        logger.info("Iniciando aplicación de Visión Artificial...")
+
+        # Inicializar el gestor de errores con el logger
+        init_error_manager(logger)
+        logger.info("Gestor de errores inicializado")
+        main_loop()
+        logger.info("Aplicación finalizada correctamente")
+        sys.exit(0)
+
+    except (OSError, RuntimeError) as e:
+        # Usar el gestor de errores para manejar la excepción
+        critical_error(e, {"context": "main", "fase": "inicialización"})
+        sys.exit(1)
+    except (ValueError, TypeError) as e:  # Capturar excepciones específicas
+        # Usar el gestor de errores para manejar excepciones desconocidas
+        critical_error(e, {"context": "main", "tipo": "excepción específica", "detalle": str(e)})
+        sys.exit(1)

@@ -1,20 +1,22 @@
 """
 Path: src/services/data_transfer_service.py
-Este módulo se encarga de realizar la transferencia de datos entre la base de datos y el servidor PHP.
+Este módulo se encarga de realizar la transferencia de datos 
+entre la base de datos y el servidor PHP.
 """
 
 from datetime import datetime
 import time
 import subprocess
 import pymysql
-from src.logs.config_logger import configurar_logging
+from utils.logging.dependency_injection import get_logger
 from src.db_operations import check_db_connection
 from src.models.data_model import obtener_datos, insertar_datos
 from src.models.data_transfer_model import get_production_log_data, get_interval_production_data
 
-logger = configurar_logging()
+logger = get_logger()
 
 def transfer_production_log_service():
+    " Transfiere los datos de ProductionLog a la base de datos."
     conn = check_db_connection()
     if not hasattr(conn, "cursor"):
         conn = conn.raw_connection()
@@ -27,9 +29,14 @@ def transfer_production_log_service():
         unixtime = (round(unixtime / 300)) * 300
         consulta1, consulta2, num_filas = get_production_log_data()
         datos_originales = obtener_datos(cursor, consulta1)
-        datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales] if datos_originales else []
+        datos = []
+        if datos_originales:
+            datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
         if datos:
-            cursor.execute("SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", (unixtime,))
+            cursor.execute(
+                "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", 
+                (unixtime,)
+            )
             if cursor.fetchone()[0] == 0:
                 insertar_datos(conn, datos, consulta2, num_filas)
                 conn.commit()
@@ -41,6 +48,7 @@ def transfer_production_log_service():
     conn.close()
 
 def transfer_interval_production_service():
+    "Transfiere los datos de intervalproduction a la base de datos."
     conn = check_db_connection()
     if not hasattr(conn, "cursor"):
         conn = conn.raw_connection()
@@ -53,9 +61,14 @@ def transfer_interval_production_service():
         unixtime = (round(unixtime / 300)) * 300
         consulta1, consulta2, num_filas = get_interval_production_data()
         datos_originales = obtener_datos(cursor, consulta1)
-        datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales] if datos_originales else []
+        datos = []
+        if datos_originales:
+            datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
         if datos:
-            cursor.execute("SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", (unixtime,))
+            cursor.execute(
+                "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", 
+                (unixtime,)
+            )
             if cursor.fetchone()[0] == 0:
                 insertar_datos(conn, datos, consulta2, num_filas)
                 conn.commit()
@@ -67,9 +80,16 @@ def transfer_interval_production_service():
     conn.close()
 
 def send_data_php_service():
+    "Envía los datos a través de un script PHP."
     php_interpreter = "C://AppServ//php7//php.exe"
     php_script = "C://AppServ//www//DataMaq//includes//SendData_python.php"
-    result = subprocess.run([php_interpreter, php_script], capture_output=True, text=True, shell=True, check=True)
+    result = subprocess.run(
+        [php_interpreter, php_script],
+        capture_output=True,
+        text=True,
+        shell=True,
+        check=True
+    )
     if result.returncode == 0:
         logger.info("Script PHP ejecutado exitosamente. Salida:")
         logger.info(result.stdout)
@@ -78,6 +98,7 @@ def send_data_php_service():
         logger.error(result.stderr)
 
 def transferir_datos_service(consulta1, consulta2, num_filas):
+    "Transfiere los datos de una consulta a la base de datos."
     try:
         conn = check_db_connection()
         if not hasattr(conn, "cursor"):
@@ -92,13 +113,19 @@ def transferir_datos_service(consulta1, consulta2, num_filas):
             datos_originales = obtener_datos(cursor, consulta1)
             datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
             if datos:
-                cursor.execute("SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", (unixtime,))
+                cursor.execute(
+                    "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", 
+                    (unixtime,)
+                )
                 if cursor.fetchone()[0] == 0:
                     insertar_datos(conn, datos, consulta2, num_filas)
                     conn.commit()
                     logger.info("Transferencia de datos completada exitosamente.")
                 else:
-                    logger.warning("Se evitó la inserción de un registro duplicado para el unixtime %s.", unixtime)
+                    logger.warning(
+                        "Se evitó la inserción de un registro duplicado para el unixtime %s.", 
+                        unixtime
+                    )
             else:
                 logger.warning("No se obtuvieron datos para transferir.")
     except pymysql.MySQLError as e:
@@ -113,9 +140,14 @@ def transferir_datos_service(consulta1, consulta2, num_filas):
             logger.info("Conexión a la base de datos cerrada.")
 
 def es_tiempo_cercano_multiplo_cinco_service(tolerancia=5):
+    "Verifica si el tiempo actual está cerca de un múltiplo de cinco minutos."
     ahora = datetime.now()
     minuto_actual = ahora.minute
     segundo_actual = ahora.second
     cercano_a_multiplo = minuto_actual % 5 <= tolerancia / 60 and segundo_actual <= tolerancia
-    logger.info("Chequeando tiempo: %s, cercano a múltiplo de 5: %s", ahora, 'sí' if cercano_a_multiplo else 'no')
+    logger.info(
+        "Chequeando tiempo: %s, cercano a múltiplo de 5: %s", 
+        ahora,
+        'sí' if cercano_a_multiplo else 'no'
+    )
     return cercano_a_multiplo

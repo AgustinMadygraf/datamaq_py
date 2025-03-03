@@ -4,16 +4,16 @@ Este módulo actúa como la capa de vista y delega la transferencia de datos al 
 """
 
 import subprocess
-from src.logs.config_logger import configurar_logging
+from utils.logging.dependency_injection import get_logger
 from src.controllers.data_transfer_controller import main_transfer_controller
 
-logger = configurar_logging()
+logger = get_logger()
 
-def MainTransfer():
-    # Delegar la operación al controlador
+def main_transfer():
+    "Función principal que inicia el proceso de transferencia de datos."
     main_transfer_controller()
 
-def SendDataPHP():
+def send_data_php(): # ver s ino es codigo muerto
     "Envía los datos a través de un script PHP."
     php_interpreter = "C://AppServ//php7//php.exe"
     php_script = "C://AppServ//www//DataMaq//includes//SendData_python.php"

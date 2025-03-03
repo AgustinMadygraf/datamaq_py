@@ -5,12 +5,14 @@ Este módulo se encarga de ejecutar el bucle principal del programa.
 
 import time
 import signal
-from src.logs.config_logger import configurar_logging
+from utils.logging.dependency_injection import get_logger
 from src.controllers.modbus_processor import process_modbus_operations
-from src.data_transfer import MainTransfer
+from src.data_transfer import main_transfer
 from src.controller import limpiar_pantalla
 
-logger = configurar_logging()
+# Inicializar el logger a nivel de módulo
+logger = get_logger()
+
 
 def main_loop():
     "Ejecuta el bucle principal del programa."
@@ -22,7 +24,7 @@ def main_loop():
 
     while running:
         logger.info("Ejecutando iteración del bucle principal.")
-        MainTransfer()
+        main_transfer()
         process_modbus_operations()
         time.sleep(1)
         limpiar_pantalla()

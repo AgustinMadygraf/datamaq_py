@@ -1,6 +1,7 @@
 """
 Path: src/models/data_transfer_model.py
-Este módulo se encarga de manejar los datos de transferencia entre la base de datos y el servidor PHP.
+Este módulo se encarga de manejar los datos de transferencia 
+entre la base de datos y el servidor PHP.
 """
 
 def get_production_log_data():
