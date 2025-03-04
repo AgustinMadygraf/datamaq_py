@@ -1,7 +1,7 @@
 import csv
 import pymysql
 import datetime
-from db_operations import check_db_connection, execute_query
+from db_operations import SQLAlchemyDatabaseRepository, execute_query
 
 # Ruta al archivo CSV
 csv_file_path = r'C:\AppServ\www\DataMaq\database\intervalproduction_d.csv'
@@ -23,7 +23,7 @@ def excel_date_to_unix(date_serial, excel_epoch=datetime.datetime(1899, 12, 30))
 
 def load_csv_to_mysql(csv_path):
     # Establecer conexión a la base de datos
-    connection = check_db_connection()
+    connection = SQLAlchemyDatabaseRepository()
     if connection is None:
         logger.info("Error al conectar con la base de datos.")
         return

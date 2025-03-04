@@ -4,8 +4,7 @@ Este módulo se encarga de procesar las operaciones Modbus,
 """
 
 import minimalmodbus
-from src.db_operations import check_db_connection, update_database
-from src.controller import read_digital_input
+from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from src.services.modbus_connection import (
     inicializar_conexion_modbus,
     establish_modbus_connection,
@@ -24,6 +23,30 @@ HR_COUNTER1_HI = 23
 HR_COUNTER2_LO = 24
 HR_COUNTER2_HI = 25
 
+repository_instance = SQLAlchemyDatabaseRepository()
+
+def build_update_query(address, value):
+    """
+    Construye una consulta SQL de actualización para la tabla 'registros_modbus'.
+    """
+    consulta = "UPDATE registros_modbus SET valor = :valor WHERE direccion_modbus = :direccion"
+    parametros = {'valor': value, 'direccion': address}
+    return consulta, parametros
+
+def update_database(address, value, descripcion):
+    """
+    Función de compatibilidad que utiliza el repositorio para actualizar un registro.
+    """
+    consulta, parametros = build_update_query(address, value)
+    try:
+        repository_instance.actualizar_registro(consulta, parametros)
+        logger.info(
+            f"Registro actualizado: dirección {address}, descripción: {descripcion}, valor {value}"
+        )
+    except Exception as e:
+        logger.error(f"Error al actualizar el registro: dirección {address}, {descripcion}: {e}")
+        raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
+
 def process_modbus_operations():
     "Procesa las operaciones Modbus."
     try:
@@ -40,7 +63,7 @@ def process_modbus_operations():
 
 def establish_db_connection():
     " Establece la conexión con la base de datos."
-    engine = check_db_connection()
+    engine = SQLAlchemyDatabaseRepository()
     if engine is None:
         raise DatabaseConnectionError("Error de conexión a la base de datos")
     return engine
@@ -81,3 +104,21 @@ class DatabaseConnectionError(Exception):
 class ModbusReadError(Exception):
     """Excepción para errores de lectura del dispositivo Modbus."""
     pass
+
+def read_digital_input(instrument, address):
+    """
+    Lee el estado de una entrada digital de un dispositivo Modbus.
+
+    Utiliza la función 'safe_modbus_read' para realizar una lectura segura de un bit del dispositivo
+    Modbus especificado. Esta función se enfoca en leer estados de entradas digitales, 
+    como sensores on/off.
+
+    Args:
+        instrument (minimalmodbus.Instrument): El instrumento Modbus utilizado para la lectura.
+        address (int): La dirección de la entrada digital a leer en el dispositivo Modbus.
+
+    Returns:
+        int/None: El estado de la entrada digital (1 o 0) si la lectura es exitosa, 
+        o None si ocurre un error.
+    """
+    return safe_modbus_read(instrument.read_bit, address, functioncode=2)

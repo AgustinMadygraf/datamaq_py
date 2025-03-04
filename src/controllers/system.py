@@ -3,13 +3,13 @@ Path: src/core/system.py
 Este módulo se encarga de ejecutar el bucle principal del programa.
 """
 
+import os
 import time
 import signal
 import platform
 from utils.logging.dependency_injection import get_logger
 from src.controllers.modbus_processor import process_modbus_operations
 from src.data_transfer import main_transfer
-from src.controller import limpiar_pantalla
 
 # Inicializar el logger a nivel de módulo
 logger = get_logger()
@@ -76,3 +76,12 @@ def handle_keyboard_interrupt():
     logger.info("Interrupción de teclado (Ctrl+C) recibida. Terminando el bucle principal...")
     logger.debug("Excepción KeyboardInterrupt capturada en main_loop")
     running = False
+
+def limpiar_pantalla():
+    """
+    Limpia la consola de comandos según el sistema operativo.
+    """
+    if platform.system() == "Windows":
+        os.system('cls')
+    else:
+        os.system('clear')

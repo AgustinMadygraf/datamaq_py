@@ -9,7 +9,7 @@ import time
 import subprocess
 import pymysql
 from utils.logging.dependency_injection import get_logger
-from src.db_operations import check_db_connection
+from src.db_operations import SQLAlchemyDatabaseRepository # SQLAlchemyDatabaseRepository()
 from src.models.data_model import obtener_datos, insertar_datos
 from src.models.data_transfer_model import get_production_log_data, get_interval_production_data
 
@@ -17,7 +17,7 @@ logger = get_logger()
 
 def transfer_production_log_service():
     " Transfiere los datos de ProductionLog a la base de datos."
-    conn = check_db_connection()
+    conn = SQLAlchemyDatabaseRepository()
     if not hasattr(conn, "cursor"):
         conn = conn.raw_connection()
     if not conn:
@@ -49,7 +49,7 @@ def transfer_production_log_service():
 
 def transfer_interval_production_service():
     "Transfiere los datos de intervalproduction a la base de datos."
-    conn = check_db_connection()
+    conn = SQLAlchemyDatabaseRepository()
     if not hasattr(conn, "cursor"):
         conn = conn.raw_connection()
     if not conn:
@@ -108,7 +108,7 @@ def send_data_php_service():
 def transferir_datos_service(consulta1, consulta2, num_filas):
     "Transfiere los datos de una consulta a la base de datos."
     try:
-        conn = check_db_connection()
+        conn = SQLAlchemyDatabaseRepository()
         if not hasattr(conn, "cursor"):
             conn = conn.raw_connection()
         if not conn:

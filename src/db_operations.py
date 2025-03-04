@@ -124,38 +124,3 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         """
         self.session.close()
         self.engine.dispose()
-
-# Funciones auxiliares para construir consultas específicas
-
-def build_update_query(address, value):
-    """
-    Construye una consulta SQL de actualización para la tabla 'registros_modbus'.
-    """
-    consulta = "UPDATE registros_modbus SET valor = :valor WHERE direccion_modbus = :direccion"
-    parametros = {'valor': value, 'direccion': address}
-    return consulta, parametros
-
-# Capa de compatibilidad para mantener la API antigua
-
-# Se crea una instancia global del repositorio para utilizarla en las funciones legacy
-repository_instance = SQLAlchemyDatabaseRepository()
-
-def check_db_connection():
-    """
-    Función de compatibilidad que retorna la instancia del repositorio.
-    """
-    return repository_instance
-
-def update_database(address, value, descripcion):
-    """
-    Función de compatibilidad que utiliza el repositorio para actualizar un registro.
-    """
-    consulta, parametros = build_update_query(address, value)
-    try:
-        repository_instance.actualizar_registro(consulta, parametros)
-        logger.info(
-            f"Registro actualizado: dirección {address}, descripción: {descripcion}, valor {value}"
-        )
-    except Exception as e:
-        logger.error(f"Error al actualizar el registro: dirección {address}, {descripcion}: {e}")
-        raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
