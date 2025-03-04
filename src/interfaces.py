@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict
 
 class IDatabaseRepository(ABC):
+    " Interfaz para la clase DatabaseRepository."
     @abstractmethod
     def obtener_engine(self) -> Any:
         """
@@ -46,7 +47,8 @@ class IDatabaseRepository(ABC):
         
         Args:
             consulta (str): La consulta SQL para la inserción.
-            lista_parametros (List[Dict]): Una lista de diccionarios con los parámetros para cada inserción.
+            lista_parametros (List[Dict]): Una lista de diccionarios
+            con los parámetros para cada inserción.
         """
         pass
 

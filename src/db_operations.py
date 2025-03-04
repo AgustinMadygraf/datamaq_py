@@ -1,4 +1,8 @@
-# src/db_operations.py
+"""
+Path: src/db_operations.py
+Este módulo se encarga de realizar operaciones de lectura y escritura en la base de datos.
+"""
+
 import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -26,6 +30,7 @@ def get_db_config():
     }
 
 class SQLAlchemyDatabaseRepository(IDatabaseRepository):
+    " Implementación de la interfaz IDatabaseRepository utilizando SQLAlchemy."
     def __init__(self):
         # Inicializa el engine y la sesión utilizando la configuración definida
         self.engine = self.obtener_engine()
@@ -44,6 +49,13 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         engine = create_engine(conn_str, pool_pre_ping=True)
         return engine
 
+    def raw_connection(self):
+        """
+        Retorna una conexión en bruto (DBAPI connection) desde el engine.
+        Esto permite compatibilidad con código legado que utiliza métodos de cursor.
+        """
+        return self.engine.raw_connection()
+
     def ejecutar_consulta(self, consulta: str, parametros: dict) -> any:
         """
         Ejecuta una consulta de lectura (SELECT) y retorna los resultados.
@@ -53,7 +65,9 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
             rows = result.fetchall()
             return rows
         except Exception as e:
-            logger.error(f"Error ejecutando consulta: {consulta} con parámetros {parametros}. Error: {e}")
+            logger.error(
+                f"Error ejecutando consulta: {consulta} con parámetros {parametros}. Error: {e}"
+            )
             self.session.rollback()
             raise e
 
@@ -64,10 +78,14 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         try:
             self.session.execute(text(consulta), parametros)
             self.session.commit()
-            logger.info(f"Actualización exitosa con consulta: {consulta} y parámetros: {parametros}")
+            logger.info(
+                f"Actualización exitosa con consulta: {consulta} y parámetros: {parametros}"
+            )
         except Exception as e:
             self.session.rollback()
-            logger.error(f"Error actualizando registro con consulta: {consulta} y parámetros: {parametros}. Error: {e}")
+            logger.error(
+                f"Error actualizando registro con consulta: {consulta} y parámetros: {parametros}. Error: {e}"
+            )
             raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
 
     def insertar_lote(self, consulta: str, lista_parametros: list) -> None:
