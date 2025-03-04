@@ -13,3 +13,5 @@ src/docs/00-Prompt-for-ProjectAnalysis.md
 docs/todo.md
 utils/__pycache__/
 src/utils/__pycache__/
+logs/debug.log.1
+logs/app.log.1

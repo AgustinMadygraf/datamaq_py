@@ -6,16 +6,26 @@ Facilita el acceso a servicios centralizados como el logger.
 
 import os
 import logging
+import sys
 from utils.logging.logger_configurator import (
-    LoggerConfigurator, 
-    get_logger as get_base_logger,
-    log_debug as log_debug_base,
-    set_debug_verbose,
-    get_debug_verbose
-)
+        LoggerConfigurator,
+        log_debug as log_debug_base,
+        set_debug_verbose,
+        get_debug_verbose
+    )
 from utils.logging.logger_factory import LoggerFactory
 from utils.logging.info_error_filter import InfoErrorFilter
 from utils.logging.exclude_http_logs_filter import ExcludeHTTPLogsFilter
+
+# Verificar si debemos activar el modo verbose por la línea de comandos
+verbose_mode = "--verbose" in sys.argv
+if verbose_mode:
+    set_debug_verbose(True)
+    print("Activando modo DEBUG_VERBOSE desde dependency_injection")
+
+# Determinar el nivel de logging basado en el modo verbose
+log_level = logging.DEBUG if verbose_mode else logging.INFO
+print(f"Nivel de logging inicial: {logging.getLevelName(log_level)}")
 
 # Definir la ruta al archivo JSON
 JSON_CONFIG_PATH = os.path.join(
@@ -25,8 +35,8 @@ JSON_CONFIG_PATH = os.path.join(
     'logging.json'
 )
 
-# Crear una instancia del configurador
-configurator = LoggerConfigurator()
+# Crear una instancia del configurador con el nivel apropiado
+configurator = LoggerConfigurator(log_level=log_level)
 
 # Registrar filtros para el caso de configuración manual
 configurator.register_filter(InfoErrorFilter)
@@ -75,10 +85,13 @@ def enable_verbose_debug(enabled: bool = True) -> None:
     Args:
         enabled: True para activar, False para desactivar
     """
+    # Usar directamente la función del configurador
     set_debug_verbose(enabled)
-    logger = get_logger("dependency_injection")
+    
+    # Obtener un logger para registrar el cambio
+    local_logger = get_logger("dependency_injection")
     mode = "activado" if enabled else "desactivado"
-    logger.info(f"Modo debug verbose {mode} desde dependency_injection")
+    local_logger.info(f"Modo debug verbose {mode}")
 
 def is_verbose_debug_enabled() -> bool:
     """

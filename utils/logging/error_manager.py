@@ -31,16 +31,16 @@ class ErrorManager:
         """
         self.logger = logger
         self.logger.debug("Inicializando ErrorManager")
-        
+
         # Diccionario de handlers específicos por tipo de excepción
         self._handlers: Dict[Type[Exception], ErrorHandlerCallback] = {}
-        
+
         # Handler por defecto
         self._default_handler: Optional[ErrorHandlerCallback] = None
-        
+
         # Configurar el handler por defecto
         self.set_default_handler(self._log_exception)
-        
+
         self.logger.debug("ErrorManager inicializado")
 
     def set_default_handler(self, handler: ErrorHandlerCallback) -> None:
@@ -53,7 +53,7 @@ class ErrorManager:
         self._default_handler = handler
         self.logger.debug(f"Handler por defecto establecido: {handler.__name__}")
 
-    def register_handler(self, exception_type: Type[ExceptionType], 
+    def register_handler(self, exception_type: Type[ExceptionType],
                         handler: ErrorHandlerCallback) -> None:
         """
         Registra un handler específico para un tipo de excepción.
@@ -77,12 +77,12 @@ class ErrorManager:
         """
         if context is None:
             context = {}
-            
+
         # Añadimos información sobre la pila de llamadas
         exc_info = sys.exc_info()
         if exc_info[2] is not None:
             context['traceback'] = traceback.format_tb(exc_info[2])
-        
+
         # Buscar un handler específico para esta excepción
         handler_found = False
         for exc_type, handler in self._handlers.items():
@@ -93,7 +93,7 @@ class ErrorManager:
                 handler(exception, context)
                 handler_found = True
                 break
-                
+
         # Si no hay handler específico, usar el por defecto
         if not handler_found and self._default_handler is not None:
             self.logger.debug(
@@ -111,31 +111,31 @@ class ErrorManager:
         """
         # Preparar mensaje de error con contexto
         error_msg = f"Error no manejado: {exception}"
-        
+
         # Si hay contexto, incluirlo en el log
         if context:
             error_msg += f" | Contexto: {context}"
-            
+
         # Registrar con nivel ERROR y la excepción completa
         self.logger.error(error_msg, exc_info=True)
-        
+
     def critical_error(self, exception: Exception, context: Dict[str, Any] = None) -> None:
         """
         Maneja un error crítico que requiere notificación inmediata.
-        
+
         Args:
             exception: Excepción que provocó el error crítico
             context: Información de contexto adicional (opcional)
         """
         if context is None:
             context = {}
-            
+
         context['critical'] = True
         self.logger.critical(f"ERROR CRÍTICO: {exception}", exc_info=True)
-        
+
         # Aquí se podrían implementar notificaciones adicionales
         # como enviar emails, mensajes a un servicio de monitoreo, etc.
-        
+
         # Manejar la excepción normalmente después de la notificación
         self.handle_exception(exception, context)
 
@@ -187,7 +187,7 @@ def get_error_manager() -> ErrorManager:
             logger.addHandler(handler)
             logger.warning("Usando logger de fallback para ErrorManager")
             init_error_manager(logger)
-            
+
     return _error_manager
 
 def handle_exception(exception: Exception, context: Dict[str, Any] = None) -> None:

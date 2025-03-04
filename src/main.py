@@ -6,34 +6,31 @@ procesando operaciones Modbus continuamente.
 
 import sys
 import platform
+from utils.logging.logger_configurator import set_debug_verbose
 from utils.logging.dependency_injection import get_logger, enable_verbose_debug
 from utils.logging.error_manager import init_error_manager, critical_error
-from src.system import SystemController
+from src.app_controller import AppController
 
 class MainApplication:
     " Clase principal de la aplicación. "
     def __init__(self, controller=None):
-        """
-        Inicializa la aplicación.
-        Args:
-            controller: Instancia de SystemController o similar. 
-            Si no se proporciona, se crea uno por defecto.
-        """
+        # Activar modo debug verbose si se pasa el argumento en la línea de comandos
+        # NOTA: Esto debe hacerse ANTES de obtener el logger
+        if "--verbose" in sys.argv:
+            set_debug_verbose(True)
+            print("Modo debug verbose activado por argumento de línea de comandos")
+            
         self.logger = get_logger()
-        self.controller = controller if controller else SystemController()
+        self.controller = controller if controller else AppController()
 
     def initialize(self):
         """Realiza la configuración inicial de la aplicación."""
         self.logger.info('Iniciando aplicación "DataMaq"')
 
-        # Activar modo debug verbose si se pasa el argumento en la línea de comandos.
-        if "--verbose" in sys.argv:
-            enable_verbose_debug(True)
-            self.logger.debug("Modo debug verbose activado por argumento de línea de comandos")
-
         # Registrar información del sistema.
-        self.logger.debug(f"Sistema operativo: {platform.system()} {platform.release()}")
-        self.logger.debug(f"Versión Python: {platform.python_version()}")
+        self.logger.info(f"Sistema operativo: {platform.system()} {platform.release()}")
+        self.logger.info(f"Versión Python: {platform.python_version()}")
+        self.logger.debug("Este mensaje DEBUG solo debería verse en modo verbose")
 
         # Inicializar el gestor de errores.
         init_error_manager(self.logger)

@@ -118,6 +118,25 @@ class LoggerConfigurator:
             if 'handlers' in config:
                 self._prepare_log_directories(config)
 
+            # Ajustar nivel por defecto para respetar el nivel INFO a menos que DEBUG_VERBOSE esté activo
+            if not DEBUG_VERBOSE:
+                # Ajustar nivel del logger principal si existe
+                if 'loggers' in config and self.logger_name in config['loggers']:
+                    config['loggers'][self.logger_name]['level'] = 'INFO'
+                
+                # Ajustar nivel de handlers que no son específicos de errores
+                if 'handlers' in config:
+                    for handler_name, handler_config in config['handlers'].items():
+                        if 'level' in handler_config and handler_config['level'] == 'DEBUG':
+                            if not handler_name.startswith('error'):
+                                handler_config['level'] = 'INFO'
+                
+                # Ajustar nivel del logger raíz si existe
+                if 'root' in config and 'level' in config['root'] and config['root']['level'] == 'DEBUG':
+                    config['root']['level'] = 'INFO'
+                    
+                print("Niveles de logging ajustados a INFO (modo no verbose)")
+
             print("Aplicando configuración mediante dictConfig")
             # Aplicar configuración
             logging.config.dictConfig(config)
@@ -125,12 +144,14 @@ class LoggerConfigurator:
 
             # Obtener logger configurado
             logger = logging.getLogger(self.logger_name)
-            logger.debug("Logger inicializado desde configuración JSON")
-            print(f"Logger '{self.logger_name}' configurado con nivel: {logger.level}")
+            logger_level_name = logging.getLevelName(logger.level)
+            print(f"Logger '{self.logger_name}' configurado con nivel: {logger.level} ({logger_level_name})")
 
             # Registrar en LoggerFactory para acceso global
             LoggerFactory.set_default_logger(logger)
-            logger.debug("Logger registrado en LoggerFactory")
+            
+            # Este mensaje solo se verá si DEBUG está activado después de la configuración
+            logger.debug("Logger inicializado desde configuración JSON")
 
             return logger
 
@@ -470,10 +491,25 @@ def set_debug_verbose(enabled: bool = True) -> None:
     """
     global DEBUG_VERBOSE
     DEBUG_VERBOSE = enabled
+    
     # Obtener un logger para registrar el cambio
     logger = get_logger("logging_system")
+    
+    # Establecer el nivel apropiado en el logger raíz y todos los handlers
+    root_logger = logging.getLogger()
+    level = logging.DEBUG if enabled else logging.INFO
+    
+    # Cambiar nivel del logger raíz
+    root_logger.setLevel(level)
+    
+    # Cambiar nivel de todos los handlers del logger raíz
+    for handler in root_logger.handlers:
+        # Solo cambiar el nivel en handlers que no son específicos para errores
+        if handler.level < logging.ERROR:
+            handler.setLevel(level)
+    
     level_str = "ACTIVADO" if enabled else "DESACTIVADO"
-    logger.info(f"Modo DEBUG_VERBOSE {level_str}")
+    logger.info(f"Modo DEBUG_VERBOSE {level_str}, nivel de logging: {logging.getLevelName(level)}")
 
 
 def get_debug_verbose() -> bool:
