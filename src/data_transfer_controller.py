@@ -1,7 +1,8 @@
 """
 Path: src/controllers/data_transfer_controller.py
-Este módulo se encarga de controlar la transferencia de datos entre la base de datos y el servidor PHP,
-utilizando una arquitectura basada en clases que facilita la extensión y el mantenimiento.
+Este módulo se encarga de controlar la transferencia de datos 
+entre la base de datos y el servidor PHP, utilizando una arquitectura
+basada en clases que facilita la extensión y el mantenimiento.
 """
 
 import time
@@ -19,8 +20,8 @@ class BaseDataTransferService:
     Servicio base que contiene métodos comunes para obtener el tiempo UNIX, leer e insertar datos
     en la base de datos.
     """
-    def __init__(self, logger):
-        self.logger = logger
+    def __init__(self, log):
+        self.logger = log
 
     def _get_unix_time(self):
         """
@@ -62,12 +63,12 @@ class BaseDataTransferService:
             self.logger.error("Error al insertar datos: %s", e)
             conn.rollback()
 
-
 class ProductionLogTransferService(BaseDataTransferService):
     """
     Servicio encargado de transferir los datos de ProductionLog.
     """
     def get_queries(self):
+        " Establece las consultas SELECT e INSERT para ProductionLog. "
         consulta_select = """
             SELECT
                 (SELECT valor FROM registros_modbus WHERE registro = 'HR_COUNTER1_LO') AS HR_COUNTER1_LO, 
@@ -105,7 +106,9 @@ class ProductionLogTransferService(BaseDataTransferService):
 
             if datos:
                 # Se verifica que no exista ya un registro para el mismo unixtime.
-                cursor.execute("SELECT COUNT(*) FROM ProductionLog WHERE unixtime = %s", (unixtime,))
+                cursor.execute(
+                    "SELECT COUNT(*) FROM ProductionLog WHERE unixtime = %s", (unixtime,)
+                )
                 result = cursor.fetchone()
                 if result and result[0] == 0:
                     self.insertar_datos(conn, datos, consulta_insert, num_filas)
@@ -117,12 +120,12 @@ class ProductionLogTransferService(BaseDataTransferService):
                 self.logger.warning("No se obtuvieron datos para ProductionLog.")
         conn.close()
 
-
 class IntervalProductionTransferService(BaseDataTransferService):
     """
     Servicio encargado de transferir los datos de intervalproduction.
     """
     def get_queries(self):
+        " Establece las consultas SELECT e INSERT para intervalproduction. "
         consulta_select = """
             SELECT 
                 ((SELECT HR_COUNTER1_LO FROM ProductionLog ORDER BY ID DESC LIMIT 1) - 
@@ -160,7 +163,10 @@ class IntervalProductionTransferService(BaseDataTransferService):
                 datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
 
             if datos:
-                cursor.execute("SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", (unixtime,))
+                cursor.execute(
+                    "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", 
+                    (unixtime,)
+                )
                 result = cursor.fetchone()
                 if result and result[0] == 0:
                     self.insertar_datos(conn, datos, consulta_insert, num_filas)
@@ -172,13 +178,12 @@ class IntervalProductionTransferService(BaseDataTransferService):
                 self.logger.warning("No se obtuvieron datos para intervalproduction.")
         conn.close()
 
-
 class PHPDataTransferService:
     """
     Servicio encargado de enviar los datos a través de un script PHP.
     """
-    def __init__(self, logger, php_interpreter=None, php_script=None):
-        self.logger = logger
+    def __init__(self, log, php_interpreter=None, php_script=None):
+        self.logger = log
         self.php_interpreter = php_interpreter or "C://AppServ//php7//php.exe"
         self.php_script = php_script or "C://AppServ//www//DataMaq//includes//SendData_python.php"
 
@@ -199,14 +204,16 @@ class PHPDataTransferService:
                 self.logger.info(result.stdout)
                 return True
             else:
-                self.logger.error("Error al ejecutar el script PHP. Código de salida: %s", result.returncode)
+                self.logger.error(
+                    "Error al ejecutar el script PHP. Código de salida: %s",
+                    result.returncode
+                )
                 self.logger.error("Mensaje de error: %s", result.stderr)
                 self.logger.error("Comando ejecutado: %s %s", self.php_interpreter, self.php_script)
                 return False
         except subprocess.CalledProcessError as e:
             self.logger.error("Excepción al ejecutar el script PHP: %s", str(e))
             return False
-
 
 class DataTransferController:
     """
@@ -215,22 +222,27 @@ class DataTransferController:
       - Ejecuta la transferencia de ProductionLog e intervalproduction.
       - Ejecuta el servicio PHP para enviar los datos.
     """
-    def __init__(self, logger):
-        self.logger = logger
-        self.production_service = ProductionLogTransferService(logger)
-        self.interval_service = IntervalProductionTransferService(logger)
-        self.php_service = PHPDataTransferService(logger)
+    def __init__(self, log):
+        self.logger = log
+        self.production_service = ProductionLogTransferService(log)
+        self.interval_service = IntervalProductionTransferService(log)
+        self.php_service = PHPDataTransferService(log=log)
 
     def es_tiempo_cercano_multiplo_cinco(self, tolerancia=5):
         """
-        Verifica si el tiempo actual está cercano (dentro de la tolerancia) a un múltiplo de 5 minutos.
+        Verifica si el tiempo actual está cercano (dentro de la tolerancia)
+        a un múltiplo de 5 minutos.
         """
         ahora = datetime.now()
         minuto_actual = ahora.minute
         segundo_actual = ahora.second
-        # Se considera cercano si los minutos residuales son 0 (o muy cercanos) y los segundos están dentro de la tolerancia.
-        cercano_a_multiplo = (minuto_actual % 5) <= (tolerancia / 60) and segundo_actual <= tolerancia
-        self.logger.info("Chequeando tiempo: %s, cercano a múltiplo de 5: %s", ahora, 'sí' if cercano_a_multiplo else 'no')
+        cercano_a_multiplo = (
+            (minuto_actual % 5) <= (tolerancia / 60) and segundo_actual <= tolerancia
+        )
+        self.logger.info(
+            "Chequeando tiempo: %s, cercano a múltiplo de 5: %s",
+            ahora, 'sí' if cercano_a_multiplo else 'no'
+        )
         return cercano_a_multiplo
 
     def run_transfer(self):
@@ -245,10 +257,13 @@ class DataTransferController:
             self.interval_service.transfer()
             php_success = self.php_service.send()
             if not php_success:
-                self.logger.warning("La transferencia de datos PHP falló, pero el programa continuará ejecutándose.")
+                self.logger.warning(
+                    "La transferencia de datos PHP falló, pero el programa continuará ejecutándose."
+                )
         else:
-            self.logger.info("No es momento de transferir datos. Esperando la próxima verificación.")
-
+            self.logger.info(
+                "No es momento de transferir datos. Esperando la próxima verificación."
+            )
 
 def main_transfer_controller():
     """

@@ -8,8 +8,8 @@ import time
 import signal
 import platform
 from utils.logging.dependency_injection import get_logger
-from src.controllers.modbus_processor import process_modbus_operations
-from src.controllers.data_transfer_controller import main_transfer_controller
+from src.modbus_processor import process_modbus_operations
+from src.data_transfer_controller import main_transfer_controller
 
 class SystemController:
     " Controlador del sistema que ejecuta el bucle principal del programa. "

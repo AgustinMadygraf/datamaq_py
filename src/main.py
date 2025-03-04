@@ -8,7 +8,7 @@ import sys
 import platform
 from utils.logging.dependency_injection import get_logger, enable_verbose_debug
 from utils.logging.error_manager import init_error_manager, critical_error
-from src.controllers.system import SystemController
+from src.system import SystemController
 
 class MainApplication:
     " Clase principal de la aplicación. "
@@ -51,7 +51,7 @@ class MainApplication:
             sys.exit(1)
         except (ValueError, TypeError) as e:
             critical_error(
-                e, 
+                e,
                 {
                     "context": "main", 
                     "tipo": "excepción específica", 
