@@ -8,7 +8,7 @@ import os
 import platform
 from utils.logging.dependency_injection import get_logger
 from src.db_operations import update_database
-from src.utils.modbus_connection import safe_modbus_read
+from src.services.modbus_connection import safe_modbus_read
 
 D1 = 70
 D2 = 71
