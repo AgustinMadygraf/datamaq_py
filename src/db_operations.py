@@ -1,159 +1,11 @@
-"""
-Path: src/db_operations.py
-Este script se ocupa de realizar operaciones de base de datos, como actualizaciones y consultas.
-"""
-
-import functools
+# src/db_operations.py
 import os
-import pymysql
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from src.interfaces import IDatabaseRepository
 from utils.logging.dependency_injection import get_logger
 
 logger = get_logger()
-
-def get_db_engine():
-    " Obtiene un objeto de engine de SQLAlchemy para la base de datos."
-    config = get_db_config()
-    conn_str = (
-        f"mysql+pymysql://{config['user']}:{config['password']}@"
-        f"{config['host']}:{config['port']}/{config['db']}"
-    )
-    engine = create_engine(conn_str, pool_pre_ping=True)
-    return engine
-
-def perform_update(connection, address, value):
-    " Realiza una actualización en la base de datos."
-    query, params = build_update_query(address, value)
-    return execute_query(connection, query, params)
-
-def update_database(address, value, descripcion):
-    """
-    Actualiza un registro en la base de datos con un valor específico.
-
-    Esta función construye y ejecuta una consulta SQL
-    para actualizar un registro en la base de datos.
-    Imprime un mensaje indicando si la actualización fue exitosa o no. 
-    En caso de errores en la ejecución
-    de la consulta, lanza una excepción personalizada `DatabaseUpdateError`.
-
-    Args:
-        address (int): La dirección del registro en la base de datos a actualizar.
-        value: El valor a asignar en el registro especificado.
-        descripcion (str): Descripción del registro para mostrar en mensajes de log.
-
-    Raises:
-        DatabaseUpdateError: Si ocurre un error al actualizar la base de datos.
-
-    Returns:
-        None
-    """
-    engine = get_db_engine()
-    query, params = build_update_query(address, value)
-    try:
-        with engine.begin() as conn:
-            conn.execute(text(query), params)
-        logger.info(
-            f"Registro actualizado: dirección {address}, "
-            f"descripción: {descripcion} valor {value}"
-        )
-    except (pymysql.OperationalError, pymysql.MySQLError) as e:
-        logger.error(f"Error al actualizar el registro: dirección {address}, {descripcion}: {e}")
-        raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
-
-def build_update_query(address, value):
-    """
-    Construye una consulta SQL de actualización y sus parámetros.
-
-    Esta función genera una consulta SQL para actualizar un registro en la tabla 'registros_modbus',
-    utilizando la dirección del registro y el nuevo valor a asignar. La consulta se construye de
-    manera parametrizada para prevenir inyecciones SQL.
-
-    Args:
-        address (int): La dirección del registro en la base de datos a actualizar.
-        value: El nuevo valor a asignar en el registro especificado.
-
-    Returns:
-        tuple: Una tupla conteniendo la consulta SQL como string 
-        y los parámetros como un diccionario.
-    """
-    query = "UPDATE registros_modbus SET valor = :valor WHERE direccion_modbus = :direccion"
-    params = {'valor': value, 'direccion': address}
-    return query, params
-
-def execute_query(connection, query, params):
-    """
-    Ejecuta una consulta SQL en la base de datos especificada.
-
-    Esta función intenta ejecutar una consulta SQL utilizando 
-    la conexión y los parámetros proporcionados.
-    En caso de éxito, confirma (commit) la transacción. Si ocurre 
-    un error durante la ejecución de la consulta,
-    imprime un mensaje de error y retorna False.
-
-    Args:
-        connection (pymysql.connections.Connection): La conexión activa a la base de datos.
-        query (str): La consulta SQL a ejecutar.
-        params (tuple): Parámetros para la consulta SQL.
-
-    Returns:
-        bool: True si la consulta se ejecuta con éxito, False en caso de error.
-    """
-    if not connection:
-        logger.error("No hay una conexión activa a la base de datos.")
-        return False
-
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(query, params)
-            connection.commit()
-        return True
-    except (pymysql.OperationalError, pymysql.MySQLError) as e:
-        logger.error(f"Error al ejecutar la consulta en la base de datos: {e}")
-        return False
-
-def reconnect_on_failure(func):
-    """
-    Decorador que intenta reconectar a la base de datos en caso de un fallo en la conexión.
-
-    Este decorador envuelve una función que realiza operaciones de base de datos. Si se detecta
-    un error de conexión operacional o de MySQL durante la ejecución de la función, intenta
-    establecer una nueva conexión y reintentar la operación.
-
-    Args:
-        func (function): La función que se va a decorar.
-
-    Returns:
-        function: La función envuelta con lógica de manejo de errores y reconexión.
-    """
-    @functools.wraps(func)
-    def wrapper_reconnect(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except (pymysql.OperationalError, pymysql.MySQLError) as e:
-            logger.info(
-                f"Se detectó un error en la conexión a la base de datos: {e}. "
-                "Intentando reconectar..."
-            )
-            try:
-                db_config = get_db_config()
-                connection = pymysql.connect(**db_config)
-                args = (connection,) + args[1:]
-                return func(*args, **kwargs)
-            except pymysql.MySQLError as reconnection_error:
-                logger.info(f"No se pudo reconectar a la base de datos: {reconnection_error}")
-                return None
-    return wrapper_reconnect
-
-
-@reconnect_on_failure
-def check_db_connection():
-    """
-    Establece una conexión a la base de datos local o remota.
-
-    Returns:
-        sqlalchemy.engine.Engine: Un objeto de engine de SQLAlchemy.
-    """
-    return get_db_engine()
 
 class DatabaseUpdateError(Exception):
     """Excepción para errores en la actualización de la base de datos."""
@@ -162,15 +14,130 @@ class DatabaseUpdateError(Exception):
 def get_db_config():
     """
     Obtiene la configuración de la base de datos desde variables de entorno o parámetros.
-
     Returns:
         dict: Un diccionario con la configuración de la base de datos.
     """
-
     return {
         'host': os.getenv('DB_HOST', 'localhost'),
         'user': os.getenv('DB_USER', 'root'),
         'password': os.getenv('DB_PASSWORD', '12345678'),
-        'db': 'novus',
-        'port': 3306  
+        'db': os.getenv('DB_NAME', 'novus'),
+        'port': os.getenv('DB_PORT', '3306')
     }
+
+class SQLAlchemyDatabaseRepository(IDatabaseRepository):
+    def __init__(self):
+        # Inicializa el engine y la sesión utilizando la configuración definida
+        self.engine = self.obtener_engine()
+        self.SessionLocal = sessionmaker(bind=self.engine)
+        self.session = self.SessionLocal()
+
+    def obtener_engine(self) -> any:
+        """
+        Retorna el objeto engine de SQLAlchemy configurado para la conexión a la base de datos.
+        """
+        config = get_db_config()
+        conn_str = (
+            f"mysql+pymysql://{config['user']}:{config['password']}@"
+            f"{config['host']}:{config['port']}/{config['db']}"
+        )
+        engine = create_engine(conn_str, pool_pre_ping=True)
+        return engine
+
+    def ejecutar_consulta(self, consulta: str, parametros: dict) -> any:
+        """
+        Ejecuta una consulta de lectura (SELECT) y retorna los resultados.
+        """
+        try:
+            result = self.session.execute(text(consulta), parametros)
+            rows = result.fetchall()
+            return rows
+        except Exception as e:
+            logger.error(f"Error ejecutando consulta: {consulta} con parámetros {parametros}. Error: {e}")
+            self.session.rollback()
+            raise e
+
+    def actualizar_registro(self, consulta: str, parametros: dict) -> None:
+        """
+        Ejecuta una consulta de actualización (UPDATE) de manera transaccional.
+        """
+        try:
+            self.session.execute(text(consulta), parametros)
+            self.session.commit()
+            logger.info(f"Actualización exitosa con consulta: {consulta} y parámetros: {parametros}")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error actualizando registro con consulta: {consulta} y parámetros: {parametros}. Error: {e}")
+            raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
+
+    def insertar_lote(self, consulta: str, lista_parametros: list) -> None:
+        """
+        Realiza inserciones en lote (batch insert) de manera transaccional.
+        """
+        try:
+            self.session.execute(text(consulta), lista_parametros)
+            self.session.commit()
+            logger.info(f"Inserción en lote exitosa con consulta: {consulta}")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error insertando lote con consulta: {consulta}. Error: {e}")
+            raise e
+
+    def commit(self) -> None:
+        """
+        Confirma la transacción actual.
+        """
+        try:
+            self.session.commit()
+        except Exception as e:
+            logger.error(f"Error al hacer commit: {e}")
+            self.session.rollback()
+            raise e
+
+    def rollback(self) -> None:
+        """
+        Revierte la transacción actual.
+        """
+        self.session.rollback()
+
+    def cerrar_conexion(self) -> None:
+        """
+        Cierra la sesión y la conexión de la base de datos.
+        """
+        self.session.close()
+        self.engine.dispose()
+
+# Funciones auxiliares para construir consultas específicas
+
+def build_update_query(address, value):
+    """
+    Construye una consulta SQL de actualización para la tabla 'registros_modbus'.
+    """
+    consulta = "UPDATE registros_modbus SET valor = :valor WHERE direccion_modbus = :direccion"
+    parametros = {'valor': value, 'direccion': address}
+    return consulta, parametros
+
+# Capa de compatibilidad para mantener la API antigua
+
+# Se crea una instancia global del repositorio para utilizarla en las funciones legacy
+repository_instance = SQLAlchemyDatabaseRepository()
+
+def check_db_connection():
+    """
+    Función de compatibilidad que retorna la instancia del repositorio.
+    """
+    return repository_instance
+
+def update_database(address, value, descripcion):
+    """
+    Función de compatibilidad que utiliza el repositorio para actualizar un registro.
+    """
+    consulta, parametros = build_update_query(address, value)
+    try:
+        repository_instance.actualizar_registro(consulta, parametros)
+        logger.info(
+            f"Registro actualizado: dirección {address}, descripción: {descripcion}, valor {value}"
+        )
+    except Exception as e:
+        logger.error(f"Error al actualizar el registro: dirección {address}, {descripcion}: {e}")
+        raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e

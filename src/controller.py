@@ -6,10 +6,9 @@ y procesar las operaciones Modbus.
 
 import os
 import platform
-import serial.tools.list_ports
 from utils.logging.dependency_injection import get_logger
 from src.db_operations import update_database
-from src.utils.modbus_connection import detect_serial_ports, safe_modbus_read, ModbusConnectionError
+from src.utils.modbus_connection import safe_modbus_read
 
 D1 = 70
 D2 = 71
