@@ -22,10 +22,12 @@ verbose_mode = "--verbose" in sys.argv
 if verbose_mode:
     set_debug_verbose(True)
     print("Activando modo DEBUG_VERBOSE desde dependency_injection")
+else:
+    print("Modo DEBUG_VERBOSE no activado desde dependency_injection")
 
 # Determinar el nivel de logging basado en el modo verbose
-log_level = logging.DEBUG if verbose_mode else logging.INFO
-print(f"Nivel de logging inicial: {logging.getLevelName(log_level)}")
+LOG_LEVEL = logging.DEBUG if verbose_mode else logging.INFO
+print(f"Nivel de logging inicial: {logging.getLevelName(LOG_LEVEL)}")
 
 # Definir la ruta al archivo JSON
 JSON_CONFIG_PATH = os.path.join(
@@ -36,7 +38,7 @@ JSON_CONFIG_PATH = os.path.join(
 )
 
 # Crear una instancia del configurador con el nivel apropiado
-configurator = LoggerConfigurator(log_level=log_level)
+configurator = LoggerConfigurator()
 
 # Registrar filtros para el caso de configuración manual
 configurator.register_filter(InfoErrorFilter)
@@ -87,7 +89,7 @@ def enable_verbose_debug(enabled: bool = True) -> None:
     """
     # Usar directamente la función del configurador
     set_debug_verbose(enabled)
-    
+
     # Obtener un logger para registrar el cambio
     local_logger = get_logger("dependency_injection")
     mode = "activado" if enabled else "desactivado"
