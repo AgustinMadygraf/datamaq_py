@@ -4,13 +4,8 @@ Este módulo se encarga de procesar las operaciones Modbus,
 """
 
 import minimalmodbus
+import serial.tools.list_ports
 from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
-from src.services.modbus_connection import (
-    inicializar_conexion_modbus,
-    establish_modbus_connection,
-    safe_modbus_read,
-    ModbusConnectionError
-)
 from utils.logging.dependency_injection import get_logger
 
 logger = get_logger()
@@ -24,6 +19,21 @@ HR_COUNTER2_LO = 24
 HR_COUNTER2_HI = 25
 
 repository_instance = SQLAlchemyDatabaseRepository()
+
+def process_modbus_operations():
+    "Procesa las operaciones Modbus."
+    try:
+        com_port, device_address = inicializar_conexion_modbus()
+    except ModbusConnectionError as e:
+        logger.error(f"Error de conexión Modbus: {e}")
+        return
+
+    establish_db_connection()
+    instrument = establish_modbus_connection(com_port, device_address)
+
+    process_digital_input(instrument)
+    process_high_resolution_register(instrument)
+
 
 def build_update_query(address, value):
     """
@@ -46,20 +56,6 @@ def update_database(address, value, descripcion):
     except Exception as e:
         logger.error(f"Error al actualizar el registro: dirección {address}, {descripcion}: {e}")
         raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
-
-def process_modbus_operations():
-    "Procesa las operaciones Modbus."
-    try:
-        com_port, device_address = inicializar_conexion_modbus()
-    except ModbusConnectionError as e:
-        logger.error(f"Error de conexión Modbus: {e}")
-        return
-
-    establish_db_connection()
-    instrument = establish_modbus_connection(com_port, device_address)
-
-    process_digital_input(instrument)
-    process_high_resolution_register(instrument)
 
 def establish_db_connection():
     " Establece la conexión con la base de datos."
@@ -122,3 +118,95 @@ def read_digital_input(instrument, address):
         o None si ocurre un error.
     """
     return safe_modbus_read(instrument.read_bit, address, functioncode=2)
+
+class ModbusConnectionError(Exception):
+    """Excepción para errores de conexión con el dispositivo Modbus."""
+    pass
+
+
+def detect_serial_ports(device_description):
+    """
+    Busca y retorna el nombre del puerto serie que coincide con la descripción del dispositivo dada.
+
+    Args:
+        device_description (str): La descripción del dispositivo Modbus a buscar entre los puertos serie.
+
+    Returns:
+        str/None: El nombre del puerto serie que coincide con la descripción del dispositivo, 
+        o None si no se encuentra.
+    """
+    available_ports = list(serial.tools.list_ports.comports())
+    for port, desc, _ in available_ports:
+        if device_description in desc:
+            return port
+    return None
+
+
+def inicializar_conexion_modbus():
+    """
+    Inicializa la conexión con el dispositivo Modbus, detectando el puerto serie adecuado.
+
+    Returns:
+        tuple: Una tupla que contiene el nombre del puerto serie encontrado 
+        y la dirección del dispositivo Modbus.
+
+    Raises:
+        ModbusConnectionError: Si no se detecta ningún puerto COM para el dispositivo.
+    """
+    device_address = 1
+    device_description = "DigiRail Connect"
+    com_port = detect_serial_ports(device_description)
+    if (com_port):
+        logger.info(f"Puerto {device_description} detectado: {com_port}")
+    else:
+        device_description = "USB-SERIAL CH340"
+        com_port = detect_serial_ports(device_description)
+        if (com_port):
+            logger.info(f"Puerto detectado: {com_port}")
+        else:
+            logger.error("No se detectaron puertos COM para el dispositivo.")
+            raise ModbusConnectionError("No se detectaron puertos COM para el dispositivo")
+    return com_port, device_address
+
+
+def establish_modbus_connection(com_port, device_address):
+    """
+    Establece la conexión con el dispositivo Modbus.
+
+    Args:
+        com_port (str): Puerto serie a utilizar para la conexión.
+        device_address (int): Dirección del dispositivo Modbus.
+
+    Returns:
+        minimalmodbus.Instrument: Objeto de conexión al instrumento Modbus.
+
+    Raises:
+        ModbusConnectionError: Si hay un error al establecer la conexión.
+    """
+    try:
+        instrument = minimalmodbus.Instrument(com_port, device_address)
+        logger.info(f"Conexión Modbus establecida en puerto {com_port}, dirección {device_address}")
+        return instrument
+    except minimalmodbus.ModbusException as e:
+        error_msg = f"Error al configurar el puerto serie: {e}"
+        logger.error(error_msg)
+        raise ModbusConnectionError(error_msg) from e
+
+
+def safe_modbus_read(method, *args, **kwargs):
+    """
+    Realiza una lectura segura de un dispositivo Modbus.
+
+    Args:
+        method (callable): Método de lectura Modbus a ser invocado.
+        *args: Argumentos posicionales para el método de lectura.
+        **kwargs: Argumentos de palabra clave para el método de lectura.
+
+    Returns:
+        El resultado del método de lectura si es exitoso, o None si ocurre una excepción.
+    """
+    try:
+        return method(*args, **kwargs)
+    except (serial.SerialException, IOError, ValueError, minimalmodbus.ModbusException) as e:
+        logger.error(f"Error al leer del dispositivo Modbus: {e}")
+        return None
