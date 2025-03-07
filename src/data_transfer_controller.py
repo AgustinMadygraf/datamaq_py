@@ -1,5 +1,5 @@
 """
-Path: src/controllers/data_transfer_controller.py
+Path: src/data_transfer_controller.py
 Este módulo se encarga de controlar la transferencia de datos 
 entre la base de datos y el servidor PHP, utilizando una arquitectura
 basada en clases que facilita la extensión y el mantenimiento.
@@ -14,6 +14,52 @@ from src.db_operations import SQLAlchemyDatabaseRepository
 
 logger = get_logger()
 
+class TimeUtility:
+    """
+    Utilidad para manejar operaciones relacionadas con el tiempo.
+    Sigue el principio de responsabilidad única (SRP) al extraer esta funcionalidad.
+    """
+    @staticmethod
+    def get_unix_time():
+        """
+        Calcula el tiempo UNIX redondeado al múltiplo de 300 segundos.
+        """
+        unixtime = int(time.time())
+        return round(unixtime / 300) * 300
+    
+    @staticmethod
+    def is_near_five_minute_multiple(tolerance=5):
+        """
+        Verifica si el tiempo actual está cercano (dentro de la tolerancia)
+        a un múltiplo de 5 minutos.
+        """
+        now = datetime.now()
+        current_minute = now.minute
+        current_second = now.second
+        near_multiple = (
+            (current_minute % 5) <= (tolerance / 60) and current_second <= tolerance
+        )
+        return near_multiple, now
+
+class DatabaseConnector:
+    """
+    Maneja la conexión a la base de datos, proporcionando una abstracción.
+    Sigue el principio de inversión de dependencias (DIP).
+    """
+    def __init__(self, logger):
+        self.logger = logger
+        
+    def get_connection(self):
+        """
+        Obtiene una conexión a la base de datos.
+        """
+        conn = SQLAlchemyDatabaseRepository()
+        if not hasattr(conn, "cursor"):
+            conn = conn.raw_connection()
+        if not conn:
+            self.logger.error("No se pudo establecer conexión con la base de datos.")
+            return None
+        return conn
 
 class BaseDataTransferService:
     """
@@ -22,13 +68,8 @@ class BaseDataTransferService:
     """
     def __init__(self, log):
         self.logger = log
-
-    def _get_unix_time(self):
-        """
-        Calcula el tiempo UNIX redondeado al múltiplo de 300 segundos.
-        """
-        unixtime = int(time.time())
-        return round(unixtime / 300) * 300
+        self.time_utility = TimeUtility()
+        self.db_connector = DatabaseConnector(log)
 
     def obtener_datos(self, cursor, consulta):
         """
@@ -62,6 +103,18 @@ class BaseDataTransferService:
         except (TypeError, ValueError) as e:
             self.logger.error("Error al insertar datos: %s", e)
             conn.rollback()
+            
+    def check_record_exists(self, conn, table, unixtime):
+        """
+        Verifica si ya existe un registro para el tiempo unix dado.
+        """
+        with conn.cursor() as cursor:
+            cursor.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE unixtime = %s", 
+                (unixtime,)
+            )
+            result = cursor.fetchone()
+            return result and result[0] > 0
 
 class ProductionLogTransferService(BaseDataTransferService):
     """
@@ -87,17 +140,13 @@ class ProductionLogTransferService(BaseDataTransferService):
         """
         Ejecuta la transferencia de datos para ProductionLog.
         """
-        conn = SQLAlchemyDatabaseRepository()
-        # Se obtiene la conexión en bruto si es necesario.
-        if not hasattr(conn, "cursor"):
-            conn = conn.raw_connection()
+        conn = self.db_connector.get_connection()
         if not conn:
-            self.logger.error("No se pudo establecer conexión con la base de datos.")
             return
 
         with conn.cursor() as cursor:
             self.logger.info("Iniciando transferencia de ProductionLog.")
-            unixtime = self._get_unix_time()
+            unixtime = TimeUtility.get_unix_time()
             consulta_select, consulta_insert, num_filas = self.get_queries()
             datos_originales = self.obtener_datos(cursor, consulta_select)
             datos = []
@@ -106,11 +155,7 @@ class ProductionLogTransferService(BaseDataTransferService):
 
             if datos:
                 # Se verifica que no exista ya un registro para el mismo unixtime.
-                cursor.execute(
-                    "SELECT COUNT(*) FROM ProductionLog WHERE unixtime = %s", (unixtime,)
-                )
-                result = cursor.fetchone()
-                if result and result[0] == 0:
+                if not self.check_record_exists(conn, "ProductionLog", unixtime):
                     self.insertar_datos(conn, datos, consulta_insert, num_filas)
                     conn.commit()
                     self.logger.info("Transferencia de ProductionLog completada exitosamente.")
@@ -146,16 +191,13 @@ class IntervalProductionTransferService(BaseDataTransferService):
         """
         Ejecuta la transferencia de datos para intervalproduction.
         """
-        conn = SQLAlchemyDatabaseRepository()
-        if not hasattr(conn, "cursor"):
-            conn = conn.raw_connection()
+        conn = self.db_connector.get_connection()
         if not conn:
-            self.logger.error("No se pudo establecer conexión para intervalproduction.")
             return
 
         with conn.cursor() as cursor:
             self.logger.info("Iniciando transferencia de intervalproduction.")
-            unixtime = self._get_unix_time()
+            unixtime = TimeUtility.get_unix_time()
             consulta_select, consulta_insert, num_filas = self.get_queries()
             datos_originales = self.obtener_datos(cursor, consulta_select)
             datos = []
@@ -163,12 +205,7 @@ class IntervalProductionTransferService(BaseDataTransferService):
                 datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
 
             if datos:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", 
-                    (unixtime,)
-                )
-                result = cursor.fetchone()
-                if result and result[0] == 0:
+                if not self.check_record_exists(conn, "intervalproduction", unixtime):
                     self.insertar_datos(conn, datos, consulta_insert, num_filas)
                     conn.commit()
                     self.logger.info("Transferencia de intervalproduction completada exitosamente.")
@@ -215,6 +252,26 @@ class PHPDataTransferService:
             self.logger.error("Excepción al ejecutar el script PHP: %s", str(e))
             return False
 
+class TransferScheduler:
+    """
+    Responsable de determinar cuándo se debe realizar la transferencia.
+    Sigue el principio de responsabilidad única (SRP).
+    """
+    def __init__(self, logger):
+        self.logger = logger
+        self.time_utility = TimeUtility()
+    
+    def should_transfer(self, tolerance=5):
+        """
+        Determina si es momento de realizar la transferencia.
+        """
+        is_near, now = self.time_utility.is_near_five_minute_multiple(tolerance)
+        self.logger.info(
+            "Chequeando tiempo: %s, cercano a múltiplo de 5: %s",
+            now, 'sí' if is_near else 'no'
+        )
+        return is_near
+
 class DataTransferController:
     """
     Controlador que orquesta la transferencia de datos:
@@ -227,23 +284,7 @@ class DataTransferController:
         self.production_service = ProductionLogTransferService(log)
         self.interval_service = IntervalProductionTransferService(log)
         self.php_service = PHPDataTransferService(log=log)
-
-    def es_tiempo_cercano_multiplo_cinco(self, tolerancia=5):
-        """
-        Verifica si el tiempo actual está cercano (dentro de la tolerancia)
-        a un múltiplo de 5 minutos.
-        """
-        ahora = datetime.now()
-        minuto_actual = ahora.minute
-        segundo_actual = ahora.second
-        cercano_a_multiplo = (
-            (minuto_actual % 5) <= (tolerancia / 60) and segundo_actual <= tolerancia
-        )
-        self.logger.info(
-            "Chequeando tiempo: %s, cercano a múltiplo de 5: %s",
-            ahora, 'sí' if cercano_a_multiplo else 'no'
-        )
-        return cercano_a_multiplo
+        self.scheduler = TransferScheduler(log)
 
     def run_transfer(self):
         """
@@ -251,7 +292,7 @@ class DataTransferController:
           - Si es tiempo de transferencia, ejecuta los tres servicios.
           - De lo contrario, informa que no es el momento.
         """
-        if self.es_tiempo_cercano_multiplo_cinco():
+        if self.scheduler.should_transfer():
             self.logger.info("Iniciando transferencia de datos.")
             self.production_service.transfer()
             self.interval_service.transfer()
@@ -264,10 +305,3 @@ class DataTransferController:
             self.logger.info(
                 "No es momento de transferir datos. Esperando la próxima verificación."
             )
-
-def main_transfer_controller():
-    """
-    Función principal que instancia el controlador de transferencia y ejecuta la operación.
-    """
-    controller = DataTransferController(logger)
-    controller.run_transfer()

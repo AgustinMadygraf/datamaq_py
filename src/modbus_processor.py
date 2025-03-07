@@ -19,6 +19,21 @@ class ModbusReadError(Exception):
     """Excepción para errores de lectura del dispositivo Modbus."""
     pass
 
+class ModbusConfig:
+    """
+    Clase de configuración que contiene constantes relacionadas con las direcciones Modbus.
+    Separa la configuración del comportamiento según el principio de separación de responsabilidades.
+    """
+    # Constantes para entradas digitales
+    D1 = 70
+    D2 = 71
+    
+    # Constantes para registros de alta resolución
+    HR_COUNTER1_LO = 22
+    HR_COUNTER1_HI = 23
+    HR_COUNTER2_LO = 24
+    HR_COUNTER2_HI = 25
+
 class ModbusConnectionManager:
     """
     Encapsula la lógica para detectar y establecer una conexión Modbus.
@@ -99,71 +114,16 @@ class ModbusDevice:
         """
         return self.safe_read(self.instrument.read_register, register, functioncode=functioncode)
 
-class ModbusProcessor:
+class ModbusDatabaseUpdater:
     """
-    Procesa las operaciones Modbus, actualizando la base de datos.
+    Responsable de actualizar la base de datos con los valores leídos.
+    Sigue el principio de responsabilidad única (SRP).
     """
-    # Constantes definidas para las direcciones y registros
-    D1 = 70
-    D2 = 71
-    HR_COUNTER1_LO = 22
-    HR_COUNTER1_HI = 23
-    HR_COUNTER2_LO = 24
-    HR_COUNTER2_HI = 25
-
-    def __init__(self, modbus_device: ModbusDevice, repository, modbus_logger):
-        self.device = modbus_device
+    def __init__(self, repository, db_logger):
         self.repository = repository
-        self.logger = modbus_logger
-
-    def process(self):
-        """
-        Procesa todas las operaciones Modbus.
-        """
-        self.process_digital_inputs()
-        self.process_high_resolution_registers()
-
-    def process_digital_inputs(self):
-        """
-        Procesa las entradas digitales y actualiza la base de datos.
-        """
-        self._process_input(self.D1, "HR_INPUT1_STATE", self.device.read_digital_input)
-        self._process_input(self.D2, "HR_INPUT2_STATE", self.device.read_digital_input)
-
-    def process_high_resolution_registers(self):
-        """
-        Procesa los registros de alta resolución y actualiza la base de datos.
-        """
-        self._process_register(self.HR_COUNTER1_LO, "HR_COUNTER1_LO")
-        self._process_register(self.HR_COUNTER1_HI, "HR_COUNTER1_HI")
-        self._process_register(self.HR_COUNTER2_LO, "HR_COUNTER2_LO")
-        self._process_register(self.HR_COUNTER2_HI, "HR_COUNTER2_HI")
-
-    def _process_input(self, address: int, description: str, read_function):
-        """
-        Procesa una entrada digital específica y actualiza la base de datos.
-        """
-        value = read_function(address)
-        if value is not None:
-            self._update_database(address, value, description)
-        else:
-            error_msg = f"Error al leer la entrada en la dirección {address}"
-            self.logger.error(error_msg)
-            raise ModbusReadError(error_msg)
-
-    def _process_register(self, register: int, description: str):
-        """
-        Procesa un registro de alta resolución y actualiza la base de datos.
-        """
-        value = self.device.read_register(register, functioncode=3)
-        if value is not None:
-            self._update_database(register, value, description)
-        else:
-            error_msg = f"Error al leer el registro en la dirección {register}"
-            self.logger.error(error_msg)
-            raise ModbusReadError(error_msg)
-
-    def _update_database(self, address: int, value, description: str):
+        self.logger = db_logger
+    
+    def update_database(self, address: int, value, description: str):
         """
         Actualiza el registro correspondiente en la base de datos.
         """
@@ -179,7 +139,7 @@ class ModbusProcessor:
                 f"Error al actualizar el registro: dirección {address}, {description}: {e}"
             )
             raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
-
+    
     def _build_update_query(self, address: int, value):
         """
         Construye la consulta SQL para actualizar el registro.
@@ -187,6 +147,64 @@ class ModbusProcessor:
         query = "UPDATE registros_modbus SET valor = :valor WHERE direccion_modbus = :direccion"
         params = {'valor': value, 'direccion': address}
         return query, params
+
+class ModbusProcessor:
+    """
+    Orquesta las operaciones Modbus, coordinando la lectura de dispositivos y la actualización de la base de datos.
+    Ahora se enfoca en la coordinación en lugar de realizar ambas operaciones.
+    """
+    def __init__(self, modbus_device: ModbusDevice, db_updater: ModbusDatabaseUpdater, modbus_logger):
+        self.device = modbus_device
+        self.db_updater = db_updater
+        self.logger = modbus_logger
+        self.config = ModbusConfig()
+
+    def process(self):
+        """
+        Procesa todas las operaciones Modbus.
+        """
+        self.process_digital_inputs()
+        self.process_high_resolution_registers()
+
+    def process_digital_inputs(self):
+        """
+        Procesa las entradas digitales y actualiza la base de datos.
+        """
+        self._process_input(self.config.D1, "HR_INPUT1_STATE", self.device.read_digital_input)
+        self._process_input(self.config.D2, "HR_INPUT2_STATE", self.device.read_digital_input)
+
+    def process_high_resolution_registers(self):
+        """
+        Procesa los registros de alta resolución y actualiza la base de datos.
+        """
+        self._process_register(self.config.HR_COUNTER1_LO, "HR_COUNTER1_LO")
+        self._process_register(self.config.HR_COUNTER1_HI, "HR_COUNTER1_HI")
+        self._process_register(self.config.HR_COUNTER2_LO, "HR_COUNTER2_LO")
+        self._process_register(self.config.HR_COUNTER2_HI, "HR_COUNTER2_HI")
+
+    def _process_input(self, address: int, description: str, read_function):
+        """
+        Procesa una entrada digital específica y actualiza la base de datos.
+        """
+        value = read_function(address)
+        if value is not None:
+            self.db_updater.update_database(address, value, description)
+        else:
+            error_msg = f"Error al leer la entrada en la dirección {address}"
+            self.logger.error(error_msg)
+            raise ModbusReadError(error_msg)
+
+    def _process_register(self, register: int, description: str):
+        """
+        Procesa un registro de alta resolución y actualiza la base de datos.
+        """
+        value = self.device.read_register(register, functioncode=3)
+        if value is not None:
+            self.db_updater.update_database(register, value, description)
+        else:
+            error_msg = f"Error al leer el registro en la dirección {register}"
+            self.logger.error(error_msg)
+            raise ModbusReadError(error_msg)
 
 def process_modbus_operations():
     """
@@ -202,7 +220,8 @@ def process_modbus_operations():
 
     modbus_device = ModbusDevice(instrument, logger)
     repository = SQLAlchemyDatabaseRepository()
-    processor = ModbusProcessor(modbus_device, repository, logger)
+    db_updater = ModbusDatabaseUpdater(repository, logger)
+    processor = ModbusProcessor(modbus_device, db_updater, logger)
     try:
         processor.process()
     except (ModbusReadError, DatabaseUpdateError) as e:

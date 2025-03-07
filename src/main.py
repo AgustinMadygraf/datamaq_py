@@ -9,7 +9,7 @@ import platform
 from utils.logging.logger_configurator import set_debug_verbose
 from utils.logging.dependency_injection import get_logger
 from utils.logging.error_manager import init_error_manager, critical_error
-from src.app_controller import AppController
+from src.controllers.app_controller import AppController
 
 class MainApplication:
     " Clase principal de la aplicación. "
@@ -19,7 +19,7 @@ class MainApplication:
         if "--verbose" in sys.argv:
             set_debug_verbose(True)
             print("Modo debug verbose activado por argumento de línea de comandos")
-            
+
         self.logger = get_logger()
         self.controller = controller if controller else AppController()
 

@@ -1,6 +1,7 @@
+
 """
 Path: src/db_operations.py
-Este módulo se encarga de realizar operaciones de lectura y escritura en la base de datos.
+Implementa la interfaz IDatabaseRepository utilizando SQLAlchemy para operaciones de base de datos.
 """
 
 import os
@@ -10,9 +11,20 @@ from sqlalchemy.orm import sessionmaker
 from src.interfaces import IDatabaseRepository
 from utils.logging.dependency_injection import get_logger
 
+logger = get_logger()
+
+# Verificar si el archivo .env existe
+if not os.path.exists('.env'):
+    logger.error("El archivo .env no existe. Por favor, cree el archivo .env con la configuración necesaria.")
+    while True:
+        user_input = input("Escriba 'acepto' para continuar, deberá crear '.env' con las credenciales ")
+        if user_input == "acepto":
+            break
+        else:
+            print("Debe aceptar para continuar.")
+
 # Cargamos las variables de entorno desde el archivo .env
 load_dotenv()
-logger = get_logger()
 
 class SQLAlchemyDatabaseRepository(IDatabaseRepository):
     "Implementación de la interfaz IDatabaseRepository utilizando SQLAlchemy."
