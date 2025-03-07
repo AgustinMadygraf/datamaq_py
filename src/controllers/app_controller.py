@@ -10,9 +10,10 @@ import platform
 from utils.logging.dependency_injection import get_logger
 from src.modbus_connection_manager import ModbusConnectionManager, ModbusConnectionError
 from src.views.app_view import clear_screen
+from src.controllers.data_transfer_controller import DataTransferController
+
 from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from src.modbus_processor import ModbusDevice, ModbusProcessor, ModbusReadError, ModbusDatabaseUpdater
-from src.controllers.data_transfer_controller import DataTransferController
 
 logger = get_logger()
 
