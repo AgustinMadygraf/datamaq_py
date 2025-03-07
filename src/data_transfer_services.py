@@ -5,41 +5,13 @@ entre la base de datos y el servidor PHP, utilizando una arquitectura
 basada en clases que facilita la extensión y el mantenimiento.
 """
 
-import time
-from datetime import datetime
 import subprocess
 import pymysql
 from utils.logging.dependency_injection import get_logger
 from src.db_operations import SQLAlchemyDatabaseRepository
+from src.time_utility import TimeUtility
 
 logger = get_logger()
-
-class TimeUtility:
-    """
-    Utilidad para manejar operaciones relacionadas con el tiempo.
-    Sigue el principio de responsabilidad única (SRP) al extraer esta funcionalidad.
-    """
-    @staticmethod
-    def get_unix_time():
-        """
-        Calcula el tiempo UNIX redondeado al múltiplo de 300 segundos.
-        """
-        unixtime = int(time.time())
-        return round(unixtime / 300) * 300
-    
-    @staticmethod
-    def is_near_five_minute_multiple(tolerance=5):
-        """
-        Verifica si el tiempo actual está cercano (dentro de la tolerancia)
-        a un múltiplo de 5 minutos.
-        """
-        now = datetime.now()
-        current_minute = now.minute
-        current_second = now.second
-        near_multiple = (
-            (current_minute % 5) <= (tolerance / 60) and current_second <= tolerance
-        )
-        return near_multiple, now
 
 class DatabaseConnector:
     """
@@ -271,37 +243,3 @@ class TransferScheduler:
             now, 'sí' if is_near else 'no'
         )
         return is_near
-
-class DataTransferController:
-    """
-    Controlador que orquesta la transferencia de datos:
-      - Verifica si es el momento de transferir (según la hora actual).
-      - Ejecuta la transferencia de ProductionLog e intervalproduction.
-      - Ejecuta el servicio PHP para enviar los datos.
-    """
-    def __init__(self, log):
-        self.logger = log
-        self.production_service = ProductionLogTransferService(log)
-        self.interval_service = IntervalProductionTransferService(log)
-        self.php_service = PHPDataTransferService(log=log)
-        self.scheduler = TransferScheduler(log)
-
-    def run_transfer(self):
-        """
-        Orquesta la transferencia de datos:
-          - Si es tiempo de transferencia, ejecuta los tres servicios.
-          - De lo contrario, informa que no es el momento.
-        """
-        if self.scheduler.should_transfer():
-            self.logger.info("Iniciando transferencia de datos.")
-            self.production_service.transfer()
-            self.interval_service.transfer()
-            php_success = self.php_service.send()
-            if not php_success:
-                self.logger.warning(
-                    "La transferencia de datos PHP falló, pero el programa continuará ejecutándose."
-                )
-        else:
-            self.logger.info(
-                "No es momento de transferir datos. Esperando la próxima verificación."
-            )

@@ -1,5 +1,5 @@
 """
-Path: src/app_controller.py
+Path: src/controllers/app_controller.py
 Este módulo se encarga de controlar el ciclo principal de la aplicación,
 procesando operaciones Modbus y transferencias de datos.
 """
@@ -8,9 +8,11 @@ import time
 import signal
 import platform
 from utils.logging.dependency_injection import get_logger
-from src.modbus_processor import process_modbus_operations
-from src.data_transfer_controller import DataTransferController
+from src.modbus_connection_manager import ModbusConnectionManager, ModbusConnectionError
 from src.views.app_view import clear_screen
+from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
+from src.modbus_processor import ModbusDevice, ModbusProcessor, ModbusReadError, ModbusDatabaseUpdater
+from src.controllers.data_transfer_controller import DataTransferController
 
 logger = get_logger()
 
@@ -40,7 +42,22 @@ class AppController:
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
         self.logger.debug("Ejecutando iteración del bucle principal.")
-        process_modbus_operations()
+        connection_manager = ModbusConnectionManager(logger)
+        try:
+            instrument = connection_manager.establish_connection()
+        except ModbusConnectionError as e:
+            logger.error(f"Error de conexión Modbus: {e}")
+            return
+
+        modbus_device = ModbusDevice(instrument, logger)
+        repository = SQLAlchemyDatabaseRepository()
+        db_updater = ModbusDatabaseUpdater(repository, logger)
+        processor = ModbusProcessor(modbus_device, db_updater, logger)
+        try:
+            processor.process()
+        except (ModbusReadError, DatabaseUpdateError) as e:
+            logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")
+
         print("")  # Se puede remover o delegar a la vista según convenga
         controller = DataTransferController(logger)
         controller.run_transfer()

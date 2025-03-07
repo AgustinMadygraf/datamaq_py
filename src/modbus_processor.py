@@ -1,5 +1,5 @@
 """
-Path: src/core/modbus_processor.py
+Path: src/modbus_processor.py
 Este módulo se encarga de procesar las operaciones Modbus siguiendo principios SOLID y POO.
 """
 
@@ -9,11 +9,6 @@ from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from utils.logging.dependency_injection import get_logger
 
 logger = get_logger()
-
-# Excepciones específicas
-class ModbusConnectionError(Exception):
-    """Excepción para errores de conexión con el dispositivo Modbus."""
-    pass
 
 class ModbusReadError(Exception):
     """Excepción para errores de lectura del dispositivo Modbus."""
@@ -33,56 +28,6 @@ class ModbusConfig:
     HR_COUNTER1_HI = 23
     HR_COUNTER2_LO = 24
     HR_COUNTER2_HI = 25
-
-class ModbusConnectionManager:
-    """
-    Encapsula la lógica para detectar y establecer una conexión Modbus.
-    """
-    def __init__(self, log, device_address=1):
-        self.logger = log
-        self.device_address = device_address
-
-    def detect_com_port(self, device_description: str):
-        """
-        Busca y retorna el puerto serie que coincide con la descripción del dispositivo.
-        """
-        available_ports = list(serial.tools.list_ports.comports())
-        for port, desc, _ in available_ports:
-            if device_description in desc:
-                return port
-        return None
-
-    def establish_connection(self):
-        """
-        Inicializa y establece la conexión Modbus.
-        Retorna un objeto minimalmodbus.Instrument.
-        """
-        # Intentar detectar el dispositivo "DigiRail Connect"
-        device_description = "DigiRail Connect"
-        com_port = self.detect_com_port(device_description)
-        if com_port:
-            self.logger.info(f"Puerto {device_description} detectado: {com_port}")
-        else:
-            # Intentar con "USB-SERIAL CH340"
-            device_description = "USB-SERIAL CH340"
-            com_port = self.detect_com_port(device_description)
-            if com_port:
-                self.logger.info(f"Puerto detectado: {com_port}")
-            else:
-                error_msg = "No se detectaron puertos COM para el dispositivo."
-                self.logger.error(error_msg)
-                raise ModbusConnectionError(error_msg)
-
-        try:
-            instrument = minimalmodbus.Instrument(com_port, self.device_address)
-            self.logger.info(
-                f"Conexión Modbus establecida en puerto {com_port}, dirección {self.device_address}"
-            )
-            return instrument
-        except minimalmodbus.ModbusException as e:
-            error_msg = f"Error al configurar el puerto serie: {e}"
-            self.logger.error(error_msg)
-            raise ModbusConnectionError(error_msg) from e
 
 class ModbusDevice:
     """
@@ -205,24 +150,3 @@ class ModbusProcessor:
             error_msg = f"Error al leer el registro en la dirección {register}"
             self.logger.error(error_msg)
             raise ModbusReadError(error_msg)
-
-def process_modbus_operations():
-    """
-    Función de orquestación que inicializa la conexión, procesa las operaciones
-    y actualiza la base de datos.
-    """
-    connection_manager = ModbusConnectionManager(logger)
-    try:
-        instrument = connection_manager.establish_connection()
-    except ModbusConnectionError as e:
-        logger.error(f"Error de conexión Modbus: {e}")
-        return
-
-    modbus_device = ModbusDevice(instrument, logger)
-    repository = SQLAlchemyDatabaseRepository()
-    db_updater = ModbusDatabaseUpdater(repository, logger)
-    processor = ModbusProcessor(modbus_device, db_updater, logger)
-    try:
-        processor.process()
-    except (ModbusReadError, DatabaseUpdateError) as e:
-        logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")
