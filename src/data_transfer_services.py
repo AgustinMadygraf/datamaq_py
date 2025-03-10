@@ -7,6 +7,8 @@ basada en clases que facilita la extensión y el mantenimiento.
 
 import subprocess
 import pymysql
+import time
+from datetime import datetime
 from utils.logging.dependency_injection import get_logger
 from src.db_operations import SQLAlchemyDatabaseRepository
 from src.time_utility import TimeUtility
@@ -232,14 +234,30 @@ class TransferScheduler:
     def __init__(self, logger):
         self.logger = logger
         self.time_utility = TimeUtility()
+        self.last_transfer_time = 0  # Almacena el último momento de transferencia
+        self.transfer_interval = 300  # Intervalo en segundos (5 minutos por defecto)
     
-    def should_transfer(self, tolerance=5):
+    def _is_transfer_time(self) -> bool:
+        """
+        Determina si es momento de realizar la transferencia basándose en el tiempo transcurrido
+        desde la última transferencia.
+        
+        Returns:
+            bool: True si es momento de transferir, False en caso contrario
+        """
+        current_time = int(time.time())
+        # Si es la primera ejecución o ha pasado suficiente tiempo
+        if self.last_transfer_time == 0 or (current_time - self.last_transfer_time) >= self.transfer_interval:
+            self.last_transfer_time = current_time
+            return True
+        return False
+    
+    def should_transfer(self) -> bool:
         """
         Determina si es momento de realizar la transferencia.
         """
-        is_near, now = self.time_utility.is_near_five_minute_multiple(tolerance)
         self.logger.info(
-            "Chequeando tiempo: %s, cercano a múltiplo de 5: %s",
-            now, 'sí' if is_near else 'no'
+            "Verificando si es momento de transferir datos: %s",
+            "momento adecuado" if self._is_transfer_time() else "aún no es el momento"
         )
-        return is_near
+        return self._is_transfer_time()

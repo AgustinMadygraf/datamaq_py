@@ -7,9 +7,9 @@ procesando operaciones Modbus y transferencias de datos.
 import time
 import signal
 import platform
-from utils.logging.dependency_injection import get_logger
+from utils.logging.simple_logger import get_logger
 from src.modbus_connection_manager import ModbusConnectionManager, ModbusConnectionError
-from src.views.app_view import clear_screen
+from src.views.console_ui import clear_screen, pause, show_info, show_error, show_success, show_debug
 from src.controllers.data_transfer_controller import DataTransferController
 
 from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
@@ -28,7 +28,7 @@ class AppController:
         current_os = platform.system()
         self.logger.info(f"Sistema operativo detectado: {current_os}")
         self.logger.debug(f"Sistema operativo detectado: {current_os}")
-        if current_os != "Windows":
+        if (current_os != "Windows"):
             self.logger.info("Configurando manejadores de señales para sistema Unix")
             signal.signal(signal.SIGINT, self.handle_signal)
             signal.signal(signal.SIGTERM, self.handle_signal)
@@ -43,11 +43,15 @@ class AppController:
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
         self.logger.debug("Ejecutando iteración del bucle principal.")
+        show_info("Iniciando operaciones de lectura Modbus...")
+        
         connection_manager = ModbusConnectionManager(logger)
         try:
             instrument = connection_manager.establish_connection()
+            show_success("Conexión Modbus establecida correctamente")
         except ModbusConnectionError as e:
             logger.error(f"Error de conexión Modbus: {e}")
+            show_error(f"Error de conexión Modbus: {e}")
             return
 
         modbus_device = ModbusDevice(instrument, logger)
@@ -56,22 +60,25 @@ class AppController:
         processor = ModbusProcessor(modbus_device, db_updater, logger)
         try:
             processor.process()
+            show_success("Procesamiento Modbus completado")
         except (ModbusReadError, DatabaseUpdateError) as e:
             logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")
+            show_error(f"Error durante el procesamiento: {e}")
 
-        print("")  # Se puede remover o delegar a la vista según convenga
+        show_info("Iniciando transferencia de datos...")
         controller = DataTransferController(logger)
         controller.run_transfer()
         time.sleep(1)
-        clear_screen()  # se utiliza la función de la vista
+        clear_screen()  # se utiliza la función importada de console_ui
 
     def run(self):
         "Ejecuta el ciclo principal de la aplicación."
         self.setup_signal_handlers()
         try:
             self.logger.info("Iniciando bucle principal")
-            input("Presione Enter para comenzar el bucle principal...")
+            pause("Presione Enter para comenzar el bucle principal...")
             while self.running:
                 self.execute_main_operations()
         except KeyboardInterrupt:
             self.logger.info("Interrupción (Ctrl+C) recibida. Terminando el bucle principal...")
+            show_info("Programa interrumpido por el usuario. Finalizando...")
