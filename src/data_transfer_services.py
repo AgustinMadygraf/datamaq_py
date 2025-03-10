@@ -8,8 +8,7 @@ basada en clases que facilita la extensión y el mantenimiento.
 import subprocess
 import pymysql
 import time
-from datetime import datetime
-from utils.logging.dependency_injection import get_logger
+from utils.logging.simple_logger import  get_logger
 from src.db_operations import SQLAlchemyDatabaseRepository
 from src.time_utility import TimeUtility
 

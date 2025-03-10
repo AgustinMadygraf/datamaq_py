@@ -1,4 +1,3 @@
-
 """
 Path: src/db_operations.py
 Implementa la interfaz IDatabaseRepository utilizando SQLAlchemy para operaciones de base de datos.
@@ -9,7 +8,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from src.interfaces import IDatabaseRepository
-from utils.logging.dependency_injection import get_logger
+from utils.logging.simple_logger import  get_logger
 
 logger = get_logger()
 
@@ -41,14 +40,40 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         
         Returns:
             dict: Un diccionario con la configuración de la base de datos.
+        
+        Raises:
+            ValueError: Si alguno de los valores de configuración esenciales no está definido.
         """
         try:
+            # Obtener variables de entorno con validación usando los nombres correctos de .env
+            host = os.getenv('DB_SERVER')
+            user = os.getenv('DB_USERNAME')
+            password = os.getenv('DB_PASSWORD')
+            db = os.getenv('DB_NAME')
+            port = os.getenv('DB_PORT', '3306')
+            
+            # Validar que las variables esenciales no son None o vacías
+            missing_vars = []
+            if not host:
+                missing_vars.append('DB_SERVER')
+            if not user:
+                missing_vars.append('DB_USERNAME')
+            if not password:
+                missing_vars.append('DB_PASSWORD')
+            if not db:
+                missing_vars.append('DB_NAME')
+            
+            if missing_vars:
+                error_msg = f"Variables de entorno requeridas no definidas: {', '.join(missing_vars)}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            
             return {
-                'host': os.getenv('DB_HOST'),
-                'user': os.getenv('DB_USER'),
-                'password': os.getenv('DB_PASSWORD'),
-                'db': os.getenv('DB_NAME'),
-                'port': os.getenv('DB_PORT', '3306')
+                'host': host,
+                'user': user,
+                'password': password,
+                'db': db,
+                'port': port
             }
         except Exception as e:
             logger.error(f"Error al obtener la configuración de la base de datos: {e}")
