@@ -11,6 +11,8 @@ from typing import Dict, Any, Optional, Union
 
 # Variable global para controlar el modo verbose
 _DEBUG_VERBOSE = False
+# Variable para el nivel de debug (1-5, donde 5 es el más detallado)
+_DEBUG_LEVEL = 1
 
 # Diccionario para almacenar una única instancia del logger
 _LOGGER_INSTANCE = None
@@ -37,6 +39,11 @@ class SimpleLogger:
         "WARNING": "\033[93m",   # Amarillo
         "ERROR": "\033[91m",     # Rojo
         "CRITICAL": "\033[91m\033[1m",  # Rojo brillante
+        "DEBUG1": "\033[37m",    # Blanco
+        "DEBUG2": "\033[36m",    # Cian
+        "DEBUG3": "\033[35m",    # Magenta
+        "DEBUG4": "\033[33m",    # Amarillo
+        "DEBUG5": "\033[31m",    # Rojo
         "RESET": "\033[0m"       # Reset
     }
     
@@ -57,9 +64,16 @@ class SimpleLogger:
             extra_data: Datos adicionales para el log
             kwargs: Argumentos adicionales (para compatibilidad con otros loggers)
         """
-        # Verificar si debemos mostrar mensajes DEBUG
-        if level == "DEBUG" and not _DEBUG_VERBOSE:
-            return
+        # Verificar si debemos mostrar mensajes DEBUG según el nivel
+        if level.startswith("DEBUG"):
+            if not _DEBUG_VERBOSE:
+                return
+                
+            # Si es un nivel específico de DEBUG (DEBUG1-DEBUG5)
+            if len(level) > 5:
+                debug_level = int(level[5:])
+                if debug_level > _DEBUG_LEVEL:
+                    return
         
         # Formatear el mensaje si se proporcionaron argumentos
         if args:
@@ -98,6 +112,16 @@ class SimpleLogger:
         """Registra un mensaje de nivel DEBUG."""
         self._log("DEBUG", message, *args, **kwargs)
     
+    def debug_level(self, level: int, message: str, *args, **kwargs) -> None:
+        """
+        Registra un mensaje de DEBUG con un nivel específico (1-5).
+        Nivel 1 es el menos detallado, nivel 5 es el más detallado.
+        """
+        if 1 <= level <= 5:
+            self._log(f"DEBUG{level}", message, *args, **kwargs)
+        else:
+            self._log("DEBUG", message, *args, **kwargs)
+    
     def info(self, message: str, *args, **kwargs) -> None:
         """Registra un mensaje de nivel INFO."""
         self._log("INFO", message, *args, **kwargs)
@@ -126,6 +150,21 @@ def set_debug_verbose(enabled: bool = True) -> None:
     _DEBUG_VERBOSE = enabled
 
 
+def set_debug_level(level: int = 1) -> None:
+    """
+    Establece el nivel de detalle para los mensajes de depuración (1-5).
+    
+    Args:
+        level: Nivel de detalle (1=mínimo, 5=máximo)
+    """
+    global _DEBUG_LEVEL
+    if 1 <= level <= 5:
+        _DEBUG_LEVEL = level
+    else:
+        print(f"Nivel de debug inválido: {level}. Debe estar entre 1 y 5. Se usará nivel 1.")
+        _DEBUG_LEVEL = 1
+
+
 def is_debug_verbose() -> bool:
     """
     Devuelve si el modo verbose está activo.
@@ -134,6 +173,16 @@ def is_debug_verbose() -> bool:
         True si el modo verbose está activo, False en caso contrario
     """
     return _DEBUG_VERBOSE
+
+
+def get_debug_level() -> int:
+    """
+    Devuelve el nivel actual de detalle de depuración.
+    
+    Returns:
+        Nivel actual de debug (1-5)
+    """
+    return _DEBUG_LEVEL
 
 
 def get_logger(name: str = "DataMaq") -> SimpleLogger:

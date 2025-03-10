@@ -8,6 +8,7 @@ import time
 import signal
 import platform
 from utils.logging.simple_logger import get_logger
+from utils.debug.debug_tools import DebugTimer, inspect_variable
 from src.modbus_connection_manager import ModbusConnectionManager, ModbusConnectionError
 from src.views.console_ui import clear_screen, pause, show_info, show_error, show_success, show_debug
 from src.controllers.data_transfer_controller import DataTransferController
@@ -22,6 +23,8 @@ class AppController:
     def __init__(self, logger=None):
         self.logger = logger or get_logger()
         self.running = True
+        # Para debugging: contador de ciclos de ejecución
+        self.cycle_count = 0
 
     def setup_signal_handlers(self):
         "Configura los manejadores de señales para el sistema operativo actual."
@@ -40,34 +43,57 @@ class AppController:
         self.logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")
         self.running = False
 
+    @DebugTimer.profile
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
+        self.cycle_count += 1
         self.logger.debug("Ejecutando iteración del bucle principal.")
+        show_debug(f"Ciclo #{self.cycle_count}")
         show_info("Iniciando operaciones de lectura Modbus...")
         
+        # Para depuración: medimos el tiempo de conexión
+        DebugTimer.start("modbus_connection")
         connection_manager = ModbusConnectionManager(logger)
         try:
             instrument = connection_manager.establish_connection()
-            show_success("Conexión Modbus establecida correctamente")
+            elapsed = DebugTimer.stop("modbus_connection")
+            # Fix: correct format specifier usage
+            show_success(f"Conexión Modbus establecida correctamente ({elapsed:.2f}s)")
         except ModbusConnectionError as e:
+            DebugTimer.stop("modbus_connection")
             logger.error(f"Error de conexión Modbus: {e}")
             show_error(f"Error de conexión Modbus: {e}")
             return
 
+        # Para depuración: inspeccionamos el objeto instrument
+        inspect_variable(instrument, "modbus_instrument", detailed=True)
+        
         modbus_device = ModbusDevice(instrument, logger)
         repository = SQLAlchemyDatabaseRepository()
         db_updater = ModbusDatabaseUpdater(repository, logger)
         processor = ModbusProcessor(modbus_device, db_updater, logger)
+        
+        # Para depuración: medimos el tiempo de procesamiento
+        DebugTimer.start("modbus_processing")
         try:
             processor.process()
-            show_success("Procesamiento Modbus completado")
+            elapsed = DebugTimer.stop("modbus_processing")
+            # Fix: correct format specifier usage
+            show_success(f"Procesamiento Modbus completado ({elapsed:.2f}s)")
         except (ModbusReadError, DatabaseUpdateError) as e:
+            DebugTimer.stop("modbus_processing")
             logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")
             show_error(f"Error durante el procesamiento: {e}")
 
         show_info("Iniciando transferencia de datos...")
+        # Para depuración: medimos el tiempo de transferencia
+        DebugTimer.start("data_transfer")
         controller = DataTransferController(logger)
         controller.run_transfer()
+        elapsed = DebugTimer.stop("data_transfer")
+        # Fix: correct format specifier usage
+        show_debug(f"Tiempo de transferencia: {elapsed:.2f}s")
+        
         time.sleep(1)
         clear_screen()  # se utiliza la función importada de console_ui
 
