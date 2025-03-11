@@ -56,25 +56,16 @@ class SimpleLogger:
         """
         Registra un mensaje con el nivel especificado.
         
-        Args:
-            level: Nivel del log (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-            message: Mensaje a registrar
-            args: Argumentos para formatear el mensaje (usando %)
-            exc_info: Si es True, añade información de la excepción
-            extra_data: Datos adicionales para el log
-            kwargs: Argumentos adicionales (para compatibilidad con otros loggers)
+        Nota:
+            - Se han eliminado las comprobaciones de niveles específicos (DEBUG1 a DEBUG5).
+            - En modo verbose (_DEBUG_VERBOSE=True) se muestran todos los mensajes.
+            - En modo simplificado (cuando _DEBUG_VERBOSE=False), se omiten los mensajes de DEBUG.
         """
-        # Verificar si debemos mostrar mensajes DEBUG según el nivel
+        # Simplificación: tratar todos los mensajes DEBUG de la misma forma
         if level.startswith("DEBUG"):
             if not _DEBUG_VERBOSE:
                 return
-                
-            # Si es un nivel específico de DEBUG (DEBUG1-DEBUG5)
-            if len(level) > 5:
-                debug_level = int(level[5:])
-                if debug_level > _DEBUG_LEVEL:
-                    return
-        
+
         # Formatear el mensaje si se proporcionaron argumentos
         if args:
             try:
@@ -117,10 +108,7 @@ class SimpleLogger:
         Registra un mensaje de DEBUG con un nivel específico (1-5).
         Nivel 1 es el menos detallado, nivel 5 es el más detallado.
         """
-        if 1 <= level <= 5:
-            self._log(f"DEBUG{level}", message, *args, **kwargs)
-        else:
-            self._log("DEBUG", message, *args, **kwargs)
+        self.debug(message, *args, **kwargs)
     
     def info(self, message: str, *args, **kwargs) -> None:
         """Registra un mensaje de nivel INFO."""
@@ -135,8 +123,13 @@ class SimpleLogger:
         self._log("ERROR", message, *args, **kwargs)
     
     def critical(self, message: str, *args, **kwargs) -> None:
-        """Registra un mensaje de nivel CRITICAL."""
-        self._log("CRITICAL", message, *args, **kwargs)
+        """
+        Registra un mensaje de nivel CRITICAL.
+        
+        Nota:
+            - La funcionalidad de CRITICAL se ha unificado redirigiéndola a error.
+        """
+        self.error(message, *args, **kwargs)
 
 
 def set_debug_verbose(enabled: bool = True) -> None:
@@ -152,17 +145,11 @@ def set_debug_verbose(enabled: bool = True) -> None:
 
 def set_debug_level(level: int = 1) -> None:
     """
-    Establece el nivel de detalle para los mensajes de depuración (1-5).
-    
-    Args:
-        level: Nivel de detalle (1=mínimo, 5=máximo)
+    Se mantiene por compatibilidad, pero con la nueva lógica se ignora el nivel.
     """
     global _DEBUG_LEVEL
-    if 1 <= level <= 5:
-        _DEBUG_LEVEL = level
-    else:
-        print(f"Nivel de debug inválido: {level}. Debe estar entre 1 y 5. Se usará nivel 1.")
-        _DEBUG_LEVEL = 1
+    # Se ignora 'level'; en modo verbose se considerará siempre el máximo detalle
+    _DEBUG_LEVEL = 5 if _DEBUG_VERBOSE else 0
 
 
 def is_debug_verbose() -> bool:
@@ -182,7 +169,7 @@ def get_debug_level() -> int:
     Returns:
         Nivel actual de debug (1-5)
     """
-    return _DEBUG_LEVEL
+    return 5 if _DEBUG_VERBOSE else 0
 
 
 def get_logger(name: str = "DataMaq") -> SimpleLogger:
@@ -196,6 +183,6 @@ def get_logger(name: str = "DataMaq") -> SimpleLogger:
         Instancia del logger
     """
     global _LOGGER_INSTANCE
-    if _LOGGER_INSTANCE is None:
+    if (_LOGGER_INSTANCE is None):
         _LOGGER_INSTANCE = SimpleLogger(name)
     return _LOGGER_INSTANCE

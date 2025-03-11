@@ -12,8 +12,6 @@ if __name__ == "__main__":
         print("Uso: python run.py [opciones]")
         print("Opciones:")
         print("  --verbose             Activa el modo verbose (mensajes de depuración)")
-        print("  --debug-level=N       Establece el nivel de detalle (1-5, donde 5 es el más detallado)")
-        print("  --help, -h            Muestra este mensaje de ayuda")
         sys.exit(0)
         
     app = MainApplication()

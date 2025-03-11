@@ -37,7 +37,7 @@ class DebugTimer:
         
         # Only log if debug is enabled
         if is_debug_verbose():
-            logger.debug_level(2, f"Timer '{name}' iniciado")
+            logger.debug(f"Timer '{name}' iniciado")
     
     @classmethod
     def lap(cls, name: str, lap_name: str = None) -> Optional[float]:
@@ -61,7 +61,7 @@ class DebugTimer:
         timer['laps'].append((lap_id, elapsed))
         
         if is_debug_verbose():
-            logger.debug_level(3, f"Timer '{name}' - {lap_id}: {elapsed:.4f}s")
+            logger.debug(f"Timer '{name}' - {lap_id}: {elapsed:.4f}s")
             
         return elapsed
     
@@ -86,10 +86,10 @@ class DebugTimer:
         
         # Mostrar resumen sólo en modo debug
         if is_debug_verbose():
-            logger.debug_level(2, f"Timer '{name}' finalizado: {elapsed:.4f}s")
+            logger.debug(f"Timer '{name}' finalizado: {elapsed:.4f}s")
             if timer['laps']:
                 for lap_name, lap_time in timer['laps']:
-                    logger.debug_level(4, f"  - {lap_name}: {lap_time:.4f}s")
+                    logger.debug(f"  - {lap_name}: {lap_time:.4f}s")
         
         # Always clean up the timer
         cls._timers.pop(name, None)
@@ -131,47 +131,47 @@ def inspect_variable(var: Any, name: str = "variable", detailed: bool = False) -
     if not is_debug_verbose():
         return
         
-    logger.debug_level(2, f"Inspección de '{name}' ({type(var).__name__}):")
+    logger.debug(f"Inspección de '{name}' ({type(var).__name__}):")
     
     try:
         # Para objetos simples
         if isinstance(var, (str, int, float, bool)) or var is None:
-            logger.debug_level(2, f"  Valor: {var}")
+            logger.debug(f"  Valor: {var}")
             
         # Para listas o tuplas
         elif isinstance(var, (list, tuple)):
-            logger.debug_level(2, f"  Tipo: {type(var).__name__}, Longitud: {len(var)}")
+            logger.debug(f"  Tipo: {type(var).__name__}, Longitud: {len(var)}")
             if detailed:
                 for i, item in enumerate(var[:5]):
-                    logger.debug_level(3, f"    [{i}]: {item}")
+                    logger.debug(f"    [{i}]: {item}")
                 if len(var) > 5:
-                    logger.debug_level(3, f"    ... y {len(var) - 5} elementos más")
+                    logger.debug(f"    ... y {len(var) - 5} elementos más")
         
         # Para diccionarios
         elif isinstance(var, dict):
-            logger.debug_level(2, f"  Tipo: dict, Claves: {len(var)}")
+            logger.debug(f"  Tipo: dict, Claves: {len(var)}")
             if detailed:
                 for i, (key, value) in enumerate(list(var.items())[:5]):
-                    logger.debug_level(3, f"    {key}: {value}")
+                    logger.debug(f"    {key}: {value}")
                 if len(var) > 5:
-                    logger.debug_level(3, f"    ... y {len(var) - 5} elementos más")
+                    logger.debug(f"    ... y {len(var) - 5} elementos más")
         
         # Para objetos más complejos
         else:
-            logger.debug_level(2, f"  Tipo: {type(var).__name__}")
+            logger.debug(f"  Tipo: {type(var).__name__}")
             if detailed:
                 try:
                     if hasattr(var, '__dict__'):
                         attrs = vars(var)
-                        logger.debug_level(3, f"  Atributos: {len(attrs)}")
+                        logger.debug(f"  Atributos: {len(attrs)}")
                         for i, (key, value) in enumerate(list(attrs.items())[:5]):
-                            logger.debug_level(4, f"    {key}: {value}")
+                            logger.debug(f"    {key}: {value}")
                         if len(attrs) > 5:
-                            logger.debug_level(4, f"    ... y {len(attrs) - 5} atributos más")
+                            logger.debug(f"    ... y {len(attrs) - 5} atributos más")
                 except:
-                    logger.debug_level(3, f"  No se pudo inspeccionar atributos")
+                    logger.debug("  No se pudo inspeccionar atributos")
     except Exception as e:
-        logger.debug_level(2, f"Error al inspeccionar '{name}': {e}")
+        logger.debug(f"Error al inspeccionar '{name}': {e}")
 
 
 def trace_call_stack(skip_frames: int = 1, max_frames: int = 10) -> None:
@@ -186,7 +186,7 @@ def trace_call_stack(skip_frames: int = 1, max_frames: int = 10) -> None:
         return
         
     stack = inspect.stack()
-    logger.debug_level(3, "Call Stack:")
+    logger.debug("Call Stack:")
     
     for i, frame_info in enumerate(stack[skip_frames:skip_frames + max_frames]):
         filename = frame_info.filename
@@ -194,8 +194,8 @@ def trace_call_stack(skip_frames: int = 1, max_frames: int = 10) -> None:
         function = frame_info.function
         context = frame_info.code_context[0].strip() if frame_info.code_context else "?"
         
-        logger.debug_level(3, f"  [{i}] {function} en {filename}:{lineno}")
-        logger.debug_level(4, f"      {context}")
+        logger.debug(f"  [{i}] {function} en {filename}:{lineno}")
+        logger.debug(f"      {context}")
 
 
 class ModbusDebug:
@@ -217,7 +217,7 @@ class ModbusDebug:
             return
             
         name_info = f" ({register_name})" if register_name else ""
-        logger.debug_level(2, f"Modbus READ: Registro 0x{register_address:04X}{name_info} = {register_value}")
+        logger.debug(f"Modbus READ: Registro 0x{register_address:04X}{name_info} = {register_value}")
     
     @staticmethod
     def log_register_write(register_address: int, register_value: Any, register_name: str = None) -> None:
@@ -233,7 +233,7 @@ class ModbusDebug:
             return
             
         name_info = f" ({register_name})" if register_name else ""
-        logger.debug_level(2, f"Modbus WRITE: Registro 0x{register_address:04X}{name_info} = {register_value}")
+        logger.debug(f"Modbus WRITE: Registro 0x{register_address:04X}{name_info} = {register_value}")
     
     @staticmethod
     def log_modbus_error(operation: str, register_address: int, error: Exception) -> None:
@@ -248,6 +248,6 @@ class ModbusDebug:
         if not is_debug_verbose():
             return
             
-        logger.debug_level(1, f"Modbus ERROR en {operation}: Registro 0x{register_address:04X}, Error: {error}")
+        logger.debug(f"Modbus ERROR en {operation}: Registro 0x{register_address:04X}, Error: {error}")
         if get_debug_level() >= 3:
-            logger.debug_level(3, f"Traceback: {traceback.format_exc()}")
+            logger.debug(f"Traceback: {traceback.format_exc()}")
