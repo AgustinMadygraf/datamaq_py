@@ -11,7 +11,7 @@ from src.controllers.app_controller import AppController
 # Inicialización de dependencias
 logger = get_logger()
 connection_manager = ModbusConnectionManager(logger)
-repository = SQLAlchemyDatabaseRepository()
+repository = SQLAlchemyDatabaseRepository(logger)
 data_transfer_controller = DataTransferController(logger)
 
 # Creación del controlador principal con dependencias inyectadas

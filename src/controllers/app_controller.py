@@ -45,6 +45,16 @@ class AppController:
         self.logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")
         self.running = False
 
+    def create_modbus_device(self, instrument):
+        # Método fábrica para crear la instancia de ModbusDevice.
+        from src.modbus_processor import ModbusDevice  # import local para evitar dependencias circulares
+        return ModbusDevice(instrument, self.logger)
+
+    def create_db_updater(self):
+        # Método fábrica para crear la instancia de ModbusDatabaseUpdater.
+        from src.modbus_processor import ModbusDatabaseUpdater  # import local
+        return ModbusDatabaseUpdater(self.repository, self.logger)
+
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
         self.cycle_count += 1
@@ -57,9 +67,10 @@ class AppController:
             self.logger.error(f"Error de conexión Modbus: {e}")
             return
 
-        from src.modbus_processor import ModbusDevice, ModbusProcessor, ModbusReadError, ModbusDatabaseUpdater  # mantener importación local
-        modbus_device = ModbusDevice(instrument, self.logger)
-        db_updater = ModbusDatabaseUpdater(self.repository, self.logger)
+        # Utilizamos los métodos fábrica para crear las instancias necesarias.
+        modbus_device = self.create_modbus_device(instrument)
+        db_updater = self.create_db_updater()
+        from src.modbus_processor import ModbusProcessor, ModbusReadError  # import local
         processor = ModbusProcessor(modbus_device, db_updater, self.logger)
         
         try:
@@ -72,7 +83,7 @@ class AppController:
         self.data_transfer_controller.run_transfer()
         
         time.sleep(1)
-        clear_screen()  # se utiliza la función importada de console_ui
+        clear_screen()
 
     def run(self):
         "Ejecuta el ciclo principal de la aplicación."

@@ -28,8 +28,8 @@ load_dotenv()
 class SQLAlchemyDatabaseRepository(IDatabaseRepository):
     "Implementación de la interfaz IDatabaseRepository utilizando SQLAlchemy."
 
-    def __init__(self):
-        # Inicializa el engine y la sesión utilizando la configuración definida
+    def __init__(self, logger=None):
+        self.logger = logger or get_logger()
         self.engine = self.obtener_engine()
         self.session_local = sessionmaker(bind=self.engine)
         self.session = self.session_local()
@@ -65,7 +65,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
             
             if missing_vars:
                 error_msg = f"Variables de entorno requeridas no definidas: {', '.join(missing_vars)}"
-                logger.error(error_msg)
+                self.logger.error(error_msg)
                 raise ValueError(error_msg)
             
             return {
@@ -76,7 +76,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
                 'port': port
             }
         except Exception as e:
-            logger.error(f"Error al obtener la configuración de la base de datos: {e}")
+            self.logger.error(f"Error al obtener la configuración de la base de datos: {e}")
             raise e
 
     def obtener_engine(self) -> any:
@@ -92,7 +92,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
             engine = create_engine(conn_str, pool_pre_ping=True)
             return engine
         except Exception as e:
-            logger.error(f"Error al obtener el engine de SQLAlchemy: {e}")
+            self.logger.error(f"Error al obtener el engine de SQLAlchemy: {e}")
             raise e
 
     def raw_connection(self):
@@ -111,7 +111,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
             rows = result.fetchall()
             return rows
         except Exception as e:
-            logger.error(
+            self.logger.error(
                 f"Error ejecutando consulta: {consulta} con parámetros {parametros}. Error: {e}"
             )
             self.session.rollback()
@@ -124,12 +124,12 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         try:
             self.session.execute(text(consulta), parametros)
             self.session.commit()
-            logger.info(
+            self.logger.info(
                 f"Actualización exitosa con consulta: {consulta} y parámetros: {parametros}"
             )
         except Exception as e:
             self.session.rollback()
-            logger.error(
+            self.logger.error(
                 f"Error actualizando registro con consulta: {consulta} y "
                 f"parámetros: {parametros}. Error: {e}"
             )
@@ -142,10 +142,10 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         try:
             self.session.execute(text(consulta), lista_parametros)
             self.session.commit()
-            logger.info(f"Inserción en lote exitosa con consulta: {consulta}")
+            self.logger.info(f"Inserción en lote exitosa con consulta: {consulta}")
         except Exception as e:
             self.session.rollback()
-            logger.error(f"Error insertando lote con consulta: {consulta}. Error: {e}")
+            self.logger.error(f"Error insertando lote con consulta: {consulta}. Error: {e}")
             raise e
 
     def commit(self) -> None:
@@ -155,7 +155,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         try:
             self.session.commit()
         except Exception as e:
-            logger.error(f"Error al hacer commit: {e}")
+            self.logger.error(f"Error al hacer commit: {e}")
             self.session.rollback()
             raise e
 
@@ -171,7 +171,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         """
         self.session.close()
         self.engine.dispose()
-        logger.info("Conexión cerrada exitosamente")
+        self.logger.info("Conexión cerrada exitosamente")
 
 class DatabaseUpdateError(Exception):
     """Excepción para errores en la actualización de la base de datos."""

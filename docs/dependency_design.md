@@ -11,3 +11,8 @@
 ## 3. Beneficios
 - Mayor modularidad y facilidad de pruebas.
 - Organización centralizada de la configuración y creación de instancias.
+
+## 4. Esquema de Inyección de Dependencias
+- Instanciación centralizada en src/container.py.
+- Inyección de logger, ModbusConnectionManager, SQLAlchemyDatabaseRepository y DataTransferController en AppController.
+- Para operaciones específicas (lectura Modbus y actualización en BD), se propone definir métodos fábrica que permitan inyectar implementaciones alternativas (por ejemplo, para pruebas).
