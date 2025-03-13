@@ -5,9 +5,8 @@ Este módulo se encarga de procesar las operaciones Modbus siguiendo principios 
 
 import minimalmodbus
 import serial.tools.list_ports
-from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
+from src.db_operations import DatabaseUpdateError
 from utils.logging.simple_logger import get_logger
-from utils.debug.debug_tools import DebugTimer, ModbusDebug, inspect_variable
 
 logger = get_logger()
 
@@ -46,13 +45,11 @@ class ModbusDevice:
             result = method(*args, **kwargs)
             # Usar ModbusDebug para registrar la lectura exitosa
             register_address = args[0] if args else kwargs.get('address', 'unknown')
-            ModbusDebug.log_register_read(register_address, result)
             return result
         except (serial.SerialException, IOError, ValueError, minimalmodbus.ModbusException) as e:
             self.logger.error(f"Error al leer del dispositivo Modbus: {e}")
             # Usar ModbusDebug para registrar el error de lectura
             register_address = args[0] if args else kwargs.get('address', 'unknown')
-            ModbusDebug.log_modbus_error("READ", register_address, e)
             return None
 
     def read_digital_input(self, address: int):
@@ -120,22 +117,14 @@ class ModbusProcessor:
         Procesa todas las operaciones Modbus.
         """
         # Usar DebugTimer para medir el tiempo de procesamiento
-        DebugTimer.start("modbus_process")
-        try:
-            self.logger.debug("Iniciando procesamiento de entradas digitales...")
-            self.process_digital_inputs()
-            DebugTimer.lap("modbus_process", "digital_inputs")
-            
-            self.logger.debug("Iniciando procesamiento de registros de alta resolución...")
-            self.process_high_resolution_registers()
-            DebugTimer.lap("modbus_process", "high_res_registers")
-            
-            # Registrar estadísticas
-            self.logger.debug(f"Procesamiento completado: {self.successful_reads} lecturas exitosas, {self.failed_reads} fallidas")
-            inspect_variable({"successful_reads": self.successful_reads, "failed_reads": self.failed_reads}, "modbus_stats")
-        finally:
-            elapsed = DebugTimer.stop("modbus_process")
-            self.logger.debug(f"Tiempo total de procesamiento Modbus: {elapsed:.4f}s")
+        self.logger.debug("Iniciando procesamiento de entradas digitales...")
+        self.process_digital_inputs()
+        
+        self.logger.debug("Iniciando procesamiento de registros de alta resolución...")
+        self.process_high_resolution_registers()
+        
+        # Registrar estadísticas
+        self.logger.debug(f"Procesamiento completado: {self.successful_reads} lecturas exitosas, {self.failed_reads} fallidas")
 
     def process_digital_inputs(self):
         """
@@ -158,10 +147,7 @@ class ModbusProcessor:
         Procesa una entrada digital específica y actualiza la base de datos.
         """
         try:
-            DebugTimer.start(f"read_input_{address}")
-            value = read_function(address)
-            DebugTimer.stop(f"read_input_{address}")
-            
+            value = read_function(address)            
             if value is not None:
                 self.db_updater.update_database(address, value, description)
                 self.successful_reads += 1
@@ -180,9 +166,7 @@ class ModbusProcessor:
         Procesa un registro de alta resolución y actualiza la base de datos.
         """
         try:
-            DebugTimer.start(f"read_register_{register}")
             value = self.device.read_register(register, functioncode=3)
-            DebugTimer.stop(f"read_register_{register}")
             
             if value is not None:
                 self.db_updater.update_database(register, value, description)

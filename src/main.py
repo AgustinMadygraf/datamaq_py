@@ -6,31 +6,13 @@ procesando operaciones Modbus continuamente.
 
 import sys
 import platform
-from utils.logging.simple_logger import set_debug_verbose, set_debug_level, get_logger
+from utils.logging.simple_logger import get_logger
 from utils.logging.error_manager import init_error_manager, critical_error
 from src.controllers.app_controller import AppController
 
 class MainApplication:
     " Clase principal de la aplicación. "
     def __init__(self, controller=None):
-        # Activar modo debug verbose si se pasa el argumento en la línea de comandos
-        # NOTA: Esto debe hacerse ANTES de obtener el logger
-        if "--verbose" in sys.argv:
-            set_debug_verbose(True)
-            print("Modo debug verbose activado por argumento de línea de comandos")
-            
-            # Verificar si se especifica un nivel de debug
-            level = 1
-            for arg in sys.argv:
-                if arg.startswith("--debug-level="):
-                    try:
-                        level = int(arg.split("=")[1])
-                    except:
-                        pass
-            
-            set_debug_level(level)
-            print(f"Nivel de debug establecido a {level}")
-
         self.logger = get_logger()
         self.controller = controller if controller else AppController()
 

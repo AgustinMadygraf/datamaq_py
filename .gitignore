@@ -16,4 +16,4 @@ src/utils/__pycache__/
 logs/debug.log.1
 logs/app.log.1
 src/views/__pycache__/
-utils/debug/__pycache__/debug_tools.cpython-311.pyc
+utils/debug/__pycache__/
