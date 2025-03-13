@@ -7,7 +7,6 @@ procesando operaciones Modbus continuamente.
 import sys
 import platform
 from utils.logging.simple_logger import get_logger
-from utils.logging.error_manager import init_error_manager, critical_error
 from src.controllers.app_controller import AppController
 
 class MainApplication:
@@ -25,10 +24,6 @@ class MainApplication:
         self.logger.info(f"Versión Python: {platform.python_version()}")
         self.logger.debug("Este mensaje DEBUG solo debería verse en modo verbose")
 
-        # Inicializar el gestor de errores.
-        init_error_manager(self.logger)
-        self.logger.info("Gestor de errores inicializado")
-
     def run(self):
         """Ejecuta el ciclo principal de la aplicación y gestiona el flujo de ejecución."""
         try:
@@ -37,15 +32,8 @@ class MainApplication:
             self.logger.info("Aplicación finalizada correctamente")
             sys.exit(0)
         except (OSError, RuntimeError) as e:
-            critical_error(e, {"context": "main", "fase": "inicialización"})
+            self.logger.error(f"Error de sistema: {e}")
             sys.exit(1)
         except (ValueError, TypeError) as e:
-            critical_error(
-                e,
-                {
-                    "context": "main", 
-                    "tipo": "excepción específica", 
-                    "detalle": str(e)
-                }
-            )
+            self.logger.error(f"Error de programación: {e}")
             sys.exit(1)
