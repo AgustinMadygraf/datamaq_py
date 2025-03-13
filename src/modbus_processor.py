@@ -1,6 +1,5 @@
 """
 Path: src/modbus_processor.py
-Este módulo se encarga de procesar las operaciones Modbus siguiendo principios SOLID y POO.
 """
 
 import minimalmodbus

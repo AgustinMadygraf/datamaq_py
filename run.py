@@ -2,9 +2,9 @@
 Path: run.py
 Punto de entrada principal del programa.
 """
+from src.container import run
 
 import sys
-from src.main import MainApplication
 
 if __name__ == "__main__":
     # Mostrar ayuda si se solicita
@@ -14,5 +14,4 @@ if __name__ == "__main__":
         print("  --verbose             Activa el modo verbose (mensajes de depuración)")
         sys.exit(0)
         
-    app = MainApplication()
-    app.run()
+    run()

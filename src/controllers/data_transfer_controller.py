@@ -17,12 +17,13 @@ class DataTransferController:
       - Ejecuta la transferencia de ProductionLog e intervalproduction.
       - Ejecuta el servicio PHP para enviar los datos.
     """
-    def __init__(self, log):
+    def __init__(self, log, production_service=None, interval_service=None, php_service=None, scheduler=None):
         self.logger = log
-        self.production_service = ProductionLogTransferService(log)
-        self.interval_service = IntervalProductionTransferService(log)
-        self.php_service = PHPDataTransferService(log=log)
-        self.scheduler = TransferScheduler(log)
+        # Inyectar o crear las dependencias necesarias
+        self.production_service = production_service or ProductionLogTransferService(log)
+        self.interval_service = interval_service or IntervalProductionTransferService(log)
+        self.php_service = php_service or PHPDataTransferService(log=log)
+        self.scheduler = scheduler or TransferScheduler(log)
 
     def run_transfer(self):
         """

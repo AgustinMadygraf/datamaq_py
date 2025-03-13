@@ -19,10 +19,13 @@ logger = get_logger()
 
 class AppController:
     """Controlador principal que gestiona el ciclo de la aplicación."""
-    def __init__(self, logger=None):
-        self.logger = logger or get_logger()
+    # Se inyectan: logger, connection_manager, repository y data_transfer_controller
+    def __init__(self, logger, connection_manager, repository, data_transfer_controller):
+        self.logger = logger
+        self.connection_manager = connection_manager
+        self.repository = repository
+        self.data_transfer_controller = data_transfer_controller
         self.running = True
-        # Para debugging: contador de ciclos de ejecución
         self.cycle_count = 0
 
     def setup_signal_handlers(self):
@@ -46,39 +49,27 @@ class AppController:
         "Se encarga de ejecutar las operaciones principales del programa."
         self.cycle_count += 1
         self.logger.debug("Ejecutando iteración del bucle principal.")
-        logger.debug(f"Ciclo #{self.cycle_count}")
-        logger.info("Iniciando operaciones de lectura Modbus...")
-        
-        # Para depuración: medimos el tiempo de conexión
-        connection_manager = ModbusConnectionManager(logger)
+        self.logger.debug(f"Ciclo #{self.cycle_count}")
+        self.logger.info("Iniciando operaciones de lectura Modbus...")
         try:
-            instrument = connection_manager.establish_connection()
-            # Fix: correct format specifier usage
+            instrument = self.connection_manager.establish_connection()
         except ModbusConnectionError as e:
-            logger.error(f"Error de conexión Modbus: {e}")
-            logger.error(f"Error de conexión Modbus: {e}")
+            self.logger.error(f"Error de conexión Modbus: {e}")
             return
 
-        # Para depuración: inspeccionamos el objeto instrument
+        from src.modbus_processor import ModbusDevice, ModbusProcessor, ModbusReadError, ModbusDatabaseUpdater  # mantener importación local
+        modbus_device = ModbusDevice(instrument, self.logger)
+        db_updater = ModbusDatabaseUpdater(self.repository, self.logger)
+        processor = ModbusProcessor(modbus_device, db_updater, self.logger)
         
-        modbus_device = ModbusDevice(instrument, logger)
-        repository = SQLAlchemyDatabaseRepository()
-        db_updater = ModbusDatabaseUpdater(repository, logger)
-        processor = ModbusProcessor(modbus_device, db_updater, logger)
-        
-        # Para depuración: medimos el tiempo de procesamiento
         try:
             processor.process()
-            # Fix: correct format specifier usage
         except (ModbusReadError, DatabaseUpdateError) as e:
-            logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")
-            logger.error(f"Error durante el procesamiento: {e}")
+            self.logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")
+            self.logger.error(f"Error durante el procesamiento: {e}")
 
-        logger.info("Iniciando transferencia de datos...")
-        # Para depuración: medimos el tiempo de transferencia
-        controller = DataTransferController(logger)
-        controller.run_transfer()
-        # Fix: correct format specifier usage
+        self.logger.info("Iniciando transferencia de datos...")
+        self.data_transfer_controller.run_transfer()
         
         time.sleep(1)
         clear_screen()  # se utiliza la función importada de console_ui
@@ -102,3 +93,16 @@ def clear_screen():
         os.system("cls")
     else:
         os.system("clear")
+
+def run_application():
+    "Inicializa la aplicación y ejecuta el ciclo principal."
+    logger = get_logger()
+    logger.info('Iniciando aplicación "DataMaq"')
+    logger.info(f"Sistema operativo: {platform.system()} {platform.release()}")
+    logger.info(f"Versión Python: {platform.python_version()}")
+    logger.debug("Este mensaje DEBUG solo debería verse en modo verbose")
+    connection_manager = ModbusConnectionManager(logger)
+    repository = SQLAlchemyDatabaseRepository()
+    data_transfer_controller = DataTransferController(logger)
+    app_controller = AppController(logger, connection_manager, repository, data_transfer_controller)
+    app_controller.run()
