@@ -7,10 +7,10 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from src.interfaces import IDatabaseRepository
-from utils.logging.simple_logger import  get_logger
+from src.interfaces.IDatabaseRepository import IDatabaseRepository
+from utils.logging.simple_logger import LoggerService
 
-logger = get_logger()
+logger = LoggerService()
 
 # Verificar si el archivo .env existe
 if not os.path.exists('.env'):
@@ -29,7 +29,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
     "Implementación de la interfaz IDatabaseRepository utilizando SQLAlchemy."
 
     def __init__(self, logger=None):
-        self.logger = logger or get_logger()
+        self.logger = logger
         self.engine = self.obtener_engine()
         self.session_local = sessionmaker(bind=self.engine)
         self.session = self.session_local()

@@ -17,3 +17,4 @@ logs/debug.log.1
 logs/app.log.1
 src/views/__pycache__/
 utils/debug/__pycache__/
+src/interfaces/__pycache__/

@@ -8,11 +8,11 @@ basada en clases que facilita la extensión y el mantenimiento.
 import subprocess
 import pymysql
 import time
-from utils.logging.simple_logger import  get_logger
+from utils.logging.simple_logger import LoggerService
 from src.db_operations import SQLAlchemyDatabaseRepository
 from src.time_utility import TimeUtility
 
-logger = get_logger()
+logger = LoggerService()
 
 class DatabaseConnector:
     """

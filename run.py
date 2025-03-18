@@ -2,7 +2,7 @@
 Path: run.py
 Punto de entrada principal del programa.
 """
-from src.container import run
+from src.main import run
 
 import sys
 

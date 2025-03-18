@@ -8,14 +8,14 @@ import os
 import time
 import signal
 import platform
-from utils.logging.simple_logger import get_logger
+from utils.logging.simple_logger import LoggerService
 from src.modbus_connection_manager import ModbusConnectionManager, ModbusConnectionError
 from src.controllers.data_transfer_controller import DataTransferController
 
 from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from src.modbus_processor import ModbusDevice, ModbusProcessor, ModbusReadError, ModbusDatabaseUpdater
 
-logger = get_logger()
+logger = LoggerService()
 
 class AppController:
     """Controlador principal que gestiona el ciclo de la aplicación."""
@@ -107,7 +107,7 @@ def clear_screen():
 
 def run_application():
     "Inicializa la aplicación y ejecuta el ciclo principal."
-    logger = get_logger()
+    logger = LoggerService(9)
     logger.info('Iniciando aplicación "DataMaq"')
     logger.info(f"Sistema operativo: {platform.system()} {platform.release()}")
     logger.info(f"Versión Python: {platform.python_version()}")

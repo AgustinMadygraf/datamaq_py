@@ -5,9 +5,9 @@ Path: src/modbus_processor.py
 import minimalmodbus
 import serial.tools.list_ports
 from src.db_operations import DatabaseUpdateError
-from utils.logging.simple_logger import get_logger
+from utils.logging.simple_logger import LoggerService
 
-logger = get_logger()
+logger = LoggerService()
 
 class ModbusReadError(Exception):
     """Excepción para errores de lectura del dispositivo Modbus."""
