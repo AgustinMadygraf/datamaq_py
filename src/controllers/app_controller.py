@@ -37,8 +37,6 @@ class AppController:
         self.logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")
         self.running = False
 
-    def create_modbus_device(self, instrument):
-        return 
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
         self.cycle_count += 1

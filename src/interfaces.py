@@ -16,6 +16,13 @@ class IDatabaseRepository(ABC):
         pass
 
     @abstractmethod
+    def raw_connection(self) -> Any:
+        """
+        Retorna una conexión en bruto (DBAPI connection) desde el engine.
+        """
+        pass
+
+    @abstractmethod
     def ejecutar_consulta(self, consulta: str, parametros: Dict) -> Any:
         """
         Ejecuta una consulta de lectura (SELECT) y retorna los resultados.

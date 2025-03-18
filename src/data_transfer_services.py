@@ -1,9 +1,5 @@
 """
 Path: src/data_transfer_controller.py
-
-Nuevo Diseño: Se implementa la inyección de dependencias en DatabaseConnector para permitir
-la inyección externa del repositorio de base de datos (SQLAlchemyDatabaseRepository). Esto mejora
-el cumplimiento del principio de inversión de dependencias (DIP) y facilita la testabilidad.
 """
 
 import subprocess
@@ -16,18 +12,13 @@ from src.time_utility import TimeUtility
 logger = LoggerService()
 
 class DatabaseConnector:
-    """
-    Maneja la conexión a la base de datos. Ahora permite inyectar la dependencia del repositorio.
-    """
-    def __init__(self, logger, repository=None):
-        # Inyección de dependencia: si no se provee, se crea la instancia por defecto.
+    "Clase encargada de gestionar la conexión a la base de datos."
+    def __init__(self, logger, repository):
         self.logger = logger
-        self.repository = repository if repository is not None else SQLAlchemyDatabaseRepository(logger)
+        self.repository = repository
     
     def get_connection(self):
-        """
-        Obtiene una conexión a la base de datos.
-        """
+        " Obtiene una conexión a la base de datos. "
         conn = self.repository.raw_connection()
         if not conn:
             self.logger.error("No se pudo establecer conexión con la base de datos.")
@@ -35,20 +26,14 @@ class DatabaseConnector:
         return conn
 
 class BaseDataTransferService:
-    """
-    Servicio base que contiene métodos comunes para obtener el tiempo UNIX, leer e insertar datos
-    en la base de datos.
-    """
+    "Clase base para los servicios de transferencia de datos."
     def __init__(self, log, repository=None):
         self.logger = log
         self.time_utility = TimeUtility()
-        # Inyección de dependencia: se pasa repository a DatabaseConnector
         self.db_connector = DatabaseConnector(log, repository)
 
     def obtener_datos(self, cursor, consulta):
-        """
-        Ejecuta la consulta SELECT y retorna los resultados.
-        """
+        " Obtiene los datos de la base de datos. "
         try:
             cursor.execute(consulta)
             return cursor.fetchall()
@@ -59,9 +44,7 @@ class BaseDataTransferService:
         return None
 
     def insertar_datos(self, conn, datos, consulta_insercion, num_filas):
-        """
-        Inserta los datos en la base de datos usando la consulta de inserción proporcionada.
-        """
+        " Inserta los datos en la base de datos. "
         try:
             with conn.cursor() as cursor:
                 for fila in datos:
@@ -79,9 +62,7 @@ class BaseDataTransferService:
             conn.rollback()
             
     def check_record_exists(self, conn, table, unixtime):
-        """
-        Verifica si ya existe un registro para el tiempo unix dado.
-        """
+        " Verifica si ya existe un registro con el mismo unixtime. "
         with conn.cursor() as cursor:
             cursor.execute(
                 f"SELECT COUNT(*) FROM {table} WHERE unixtime = %s", 
@@ -91,9 +72,7 @@ class BaseDataTransferService:
             return result and result[0] > 0
 
 class ProductionLogTransferService(BaseDataTransferService):
-    """
-    Servicio encargado de transferir los datos de ProductionLog.
-    """
+    "Servicio encargado de transferir los datos de ProductionLog."
     def get_queries(self):
         " Establece las consultas SELECT e INSERT para ProductionLog. "
         consulta_select = """
@@ -111,9 +90,7 @@ class ProductionLogTransferService(BaseDataTransferService):
         return consulta_select, consulta_insert, num_filas
 
     def transfer(self):
-        """
-        Ejecuta la transferencia de datos para ProductionLog.
-        """
+        "Ejecuta la transferencia de datos para ProductionLog."
         conn = self.db_connector.get_connection()
         if not conn:
             return
@@ -140,9 +117,7 @@ class ProductionLogTransferService(BaseDataTransferService):
         conn.close()
 
 class IntervalProductionTransferService(BaseDataTransferService):
-    """
-    Servicio encargado de transferir los datos de intervalproduction.
-    """
+    "Servicio encargado de transferir los datos de intervalproduction."
     def get_queries(self):
         " Establece las consultas SELECT e INSERT para intervalproduction. "
         consulta_select = """
@@ -162,9 +137,7 @@ class IntervalProductionTransferService(BaseDataTransferService):
         return consulta_select, consulta_insert, num_filas
 
     def transfer(self):
-        """
-        Ejecuta la transferencia de datos para intervalproduction.
-        """
+        "Ejecuta la transferencia de datos para intervalproduction."
         conn = self.db_connector.get_connection()
         if not conn:
             return
@@ -190,18 +163,14 @@ class IntervalProductionTransferService(BaseDataTransferService):
         conn.close()
 
 class PHPDataTransferService:
-    """
-    Servicio encargado de enviar los datos a través de un script PHP.
-    """
+    "Servicio encargado de enviar los datos a través de un script PHP."
     def __init__(self, log, php_interpreter=None, php_script=None):
         self.logger = log
         self.php_interpreter = php_interpreter or "C://AppServ//php7//php.exe"
         self.php_script = php_script or "C://AppServ//www//DataMaq//includes//SendData_python.php"
 
     def send(self):
-        """
-        Ejecuta el script PHP y retorna True si fue exitoso.
-        """
+        "Ejecuta el script PHP y retorna True si fue exitoso."
         try:
             result = subprocess.run(
                 [self.php_interpreter, self.php_script],
@@ -227,35 +196,23 @@ class PHPDataTransferService:
             return False
 
 class TransferScheduler:
-    """
-    Responsable de determinar cuándo se debe realizar la transferencia.
-    Sigue el principio de responsabilidad única (SRP).
-    """
+    "Responsable de determinar cuándo se debe realizar la transferencia."
     def __init__(self, logger):
         self.logger = logger
         self.time_utility = TimeUtility()
-        self.last_transfer_time = 0  # Almacena el último momento de transferencia
-        self.transfer_interval = 300  # Intervalo en segundos (5 minutos por defecto)
+        self.last_transfer_time = 0
+        self.transfer_interval = 300
     
     def _is_transfer_time(self) -> bool:
-        """
-        Determina si es momento de realizar la transferencia basándose en el tiempo transcurrido
-        desde la última transferencia.
-        
-        Returns:
-            bool: True si es momento de transferir, False en caso contrario
-        """
+        " Determina si es momento de realizar la transferencia. "
         current_time = int(time.time())
-        # Si es la primera ejecución o ha pasado suficiente tiempo
         if self.last_transfer_time == 0 or (current_time - self.last_transfer_time) >= self.transfer_interval:
             self.last_transfer_time = current_time
             return True
         return False
     
     def should_transfer(self) -> bool:
-        """
-        Determina si es momento de realizar la transferencia.
-        """
+        " Verifica si es momento de transferir los datos."
         self.logger.info(
             "Verificando si es momento de transferir datos: %s",
             "momento adecuado" if self._is_transfer_time() else "aún no es el momento"

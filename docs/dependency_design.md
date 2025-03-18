@@ -1,18 +1,10 @@
-# Diseño Inicial del Contenedor de Dependencias
+# Diseño de Dependencias
 
-## 1. Análisis del flujo actual
-- El AppController crea internamente el ModbusConnectionManager, SQLAlchemyDatabaseRepository y DataTransferController.
-- Cada módulo (modbus_connection_manager, modbus_processor, data_transfer_controller) recibe su logger en el constructor, lo que facilita la inyección.
+## Inyección de la Dependencia en DatabaseConnector
 
-## 2. Propuesta de inyección
-- Extraer la creación de dependencias para centralizarla en un módulo (p.ej. src/container.py).
-- Modificar el AppController para que reciba las dependencias ya creadas (logger, connection manager, repositorio y controlador de transferencias) en su constructor.
+Se ha modificado la clase `DatabaseConnector` para que ya no cree internamente una instancia de `SQLAlchemyDatabaseRepository`, sino que reciba explícitamente una implementación que cumpla con la interfaz `IDatabaseRepository`. De esta manera, se reduce el acoplamiento y se facilita la realización de pruebas unitarias, cumpliendo con el Principio de Inversión de Dependencias (DIP).
 
-## 3. Beneficios
-- Mayor modularidad y facilidad de pruebas.
-- Organización centralizada de la configuración y creación de instancias.
+- La dependencia se inyecta desde los puntos centrales de la aplicación (por ejemplo, en `main.py`).
+- Esto permite intercambiar la implementación del repositorio sin afectar la lógica de conexión ni la transferencia de datos.
 
-## 4. Esquema de Inyección de Dependencias
-- Instanciación centralizada en src/container.py.
-- Inyección de logger, ModbusConnectionManager, SQLAlchemyDatabaseRepository y DataTransferController en AppController.
-- Para operaciones específicas (lectura Modbus y actualización en BD), se propone definir métodos fábrica que permitan inyectar implementaciones alternativas (por ejemplo, para pruebas).
+...existing documentation...
