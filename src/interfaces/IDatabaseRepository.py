@@ -12,18 +12,22 @@ class IDatabaseRepository(ABC):
 
     @abstractmethod
     def raw_connection(self):
+        """Retorna una conexión en bruto (DBAPI connection) desde el engine."""
         pass
 
     @abstractmethod
     def ejecutar_consulta(self, consulta: str, parametros: dict) -> any:
+        """Ejecuta una consulta de lectura y retorna sus resultados."""
         pass
 
     @abstractmethod
     def actualizar_registro(self, consulta: str, parametros: dict) -> None:
+        """Ejecuta una consulta de actualización de manera transaccional."""
         pass
 
     @abstractmethod
     def insertar_lote(self, consulta: str, lista_parametros: list) -> None:
+        """Realiza inserciones en lote (batch insert) de manera transaccional."""
         pass
 
     @abstractmethod

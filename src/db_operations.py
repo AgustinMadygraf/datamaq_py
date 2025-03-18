@@ -26,7 +26,7 @@ if not os.path.exists('.env'):
 load_dotenv()
 
 class SQLAlchemyDatabaseRepository(IDatabaseRepository):
-    "Implementación de la interfaz IDatabaseRepository utilizando SQLAlchemy."
+    "Implementación de la interfaz IDatabaseRepository utilizando SQLAlchemy. Utilizado para inyección de dependencias en DatabaseConnector."
 
     def __init__(self, logger=None):
         self.logger = logger

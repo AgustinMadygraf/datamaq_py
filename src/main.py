@@ -12,9 +12,9 @@ from src.controllers.app_controller import AppController
 logger = LoggerService()
 connection_manager = ModbusConnectionManager(logger)
 repository = SQLAlchemyDatabaseRepository(logger)
-data_transfer_controller = DataTransferController(logger)
-
-# Creación del controlador principal con dependencias inyectadas
+# Se inyecta el repositorio en el controlador de transferencia (cambios graduales)
+data_transfer_controller = DataTransferController(logger, repository)
+# Inyección de dependencias en AppController
 app_controller = AppController(logger, connection_manager, repository, data_transfer_controller)
 
 def run():

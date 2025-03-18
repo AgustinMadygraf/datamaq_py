@@ -1,8 +1,9 @@
 """
 Path: src/data_transfer_controller.py
-Este módulo se encarga de controlar la transferencia de datos 
-entre la base de datos y el servidor PHP, utilizando una arquitectura
-basada en clases que facilita la extensión y el mantenimiento.
+
+Nuevo Diseño: Se implementa la inyección de dependencias en DatabaseConnector para permitir
+la inyección externa del repositorio de base de datos (SQLAlchemyDatabaseRepository). Esto mejora
+el cumplimiento del principio de inversión de dependencias (DIP) y facilita la testabilidad.
 """
 
 import subprocess
@@ -16,19 +17,18 @@ logger = LoggerService()
 
 class DatabaseConnector:
     """
-    Maneja la conexión a la base de datos, proporcionando una abstracción.
-    Sigue el principio de inversión de dependencias (DIP).
+    Maneja la conexión a la base de datos. Ahora permite inyectar la dependencia del repositorio.
     """
-    def __init__(self, logger):
+    def __init__(self, logger, repository=None):
+        # Inyección de dependencia: si no se provee, se crea la instancia por defecto.
         self.logger = logger
-        
+        self.repository = repository if repository is not None else SQLAlchemyDatabaseRepository(logger)
+    
     def get_connection(self):
         """
         Obtiene una conexión a la base de datos.
         """
-        conn = SQLAlchemyDatabaseRepository()
-        if not hasattr(conn, "cursor"):
-            conn = conn.raw_connection()
+        conn = self.repository.raw_connection()
         if not conn:
             self.logger.error("No se pudo establecer conexión con la base de datos.")
             return None
@@ -39,10 +39,11 @@ class BaseDataTransferService:
     Servicio base que contiene métodos comunes para obtener el tiempo UNIX, leer e insertar datos
     en la base de datos.
     """
-    def __init__(self, log):
+    def __init__(self, log, repository=None):
         self.logger = log
         self.time_utility = TimeUtility()
-        self.db_connector = DatabaseConnector(log)
+        # Inyección de dependencia: se pasa repository a DatabaseConnector
+        self.db_connector = DatabaseConnector(log, repository)
 
     def obtener_datos(self, cursor, consulta):
         """

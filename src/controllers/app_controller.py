@@ -1,7 +1,5 @@
 """
 Path: src/controllers/app_controller.py
-Este módulo se encarga de controlar el ciclo principal de la aplicación,
-procesando operaciones Modbus y transferencias de datos.
 """
 
 import os
