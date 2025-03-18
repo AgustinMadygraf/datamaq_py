@@ -8,18 +8,12 @@ import os
 import time
 import signal
 import platform
-from utils.logging.simple_logger import LoggerService
-from src.modbus_connection_manager import ModbusConnectionManager, ModbusConnectionError
-from src.controllers.data_transfer_controller import DataTransferController
-
-from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
-from src.modbus_processor import ModbusDevice, ModbusProcessor, ModbusReadError, ModbusDatabaseUpdater
-
-logger = LoggerService()
+from src.modbus_connection_manager import ModbusConnectionError
+from src.modbus_processor import ModbusDatabaseUpdater, ModbusDevice, ModbusProcessor, ModbusReadError
+from src.db_operations import DatabaseUpdateError
 
 class AppController:
     """Controlador principal que gestiona el ciclo de la aplicación."""
-    # Se inyectan: logger, connection_manager, repository y data_transfer_controller
     def __init__(self, logger, connection_manager, repository, data_transfer_controller):
         self.logger = logger
         self.connection_manager = connection_manager
@@ -46,15 +40,7 @@ class AppController:
         self.running = False
 
     def create_modbus_device(self, instrument):
-        # Método fábrica para crear la instancia de ModbusDevice.
-        from src.modbus_processor import ModbusDevice  # import local para evitar dependencias circulares
-        return ModbusDevice(instrument, self.logger)
-
-    def create_db_updater(self):
-        # Método fábrica para crear la instancia de ModbusDatabaseUpdater.
-        from src.modbus_processor import ModbusDatabaseUpdater  # import local
-        return ModbusDatabaseUpdater(self.repository, self.logger)
-
+        return 
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
         self.cycle_count += 1
@@ -67,10 +53,8 @@ class AppController:
             self.logger.error(f"Error de conexión Modbus: {e}")
             return
 
-        # Utilizamos los métodos fábrica para crear las instancias necesarias.
-        modbus_device = self.create_modbus_device(instrument)
-        db_updater = self.create_db_updater()
-        from src.modbus_processor import ModbusProcessor, ModbusReadError  # import local
+        modbus_device = ModbusDevice(instrument, self.logger)
+        db_updater = ModbusDatabaseUpdater(self.repository, self.logger)
         processor = ModbusProcessor(modbus_device, db_updater, self.logger)
         
         try:
@@ -83,7 +67,7 @@ class AppController:
         self.data_transfer_controller.run_transfer()
         
         time.sleep(1)
-        clear_screen()
+        self.clear_screen()
 
     def run(self):
         "Ejecuta el ciclo principal de la aplicación."
@@ -95,25 +79,11 @@ class AppController:
                 self.execute_main_operations()
         except KeyboardInterrupt:
             self.logger.info("Interrupción (Ctrl+C) recibida. Terminando el bucle principal...")
-            logger.info("Programa interrumpido por el usuario. Finalizando...")
+            self.logger.info("Programa interrumpido por el usuario. Finalizando...")
 
-
-def clear_screen():
-    "Limpia la pantalla de la consola."
-    if platform.system() == "Windows":
-        os.system("cls")
-    else:
-        os.system("clear")
-
-def run_application():
-    "Inicializa la aplicación y ejecuta el ciclo principal."
-    logger = LoggerService(9)
-    logger.info('Iniciando aplicación "DataMaq"')
-    logger.info(f"Sistema operativo: {platform.system()} {platform.release()}")
-    logger.info(f"Versión Python: {platform.python_version()}")
-    logger.debug("Este mensaje DEBUG solo debería verse en modo verbose")
-    connection_manager = ModbusConnectionManager(logger)
-    repository = SQLAlchemyDatabaseRepository()
-    data_transfer_controller = DataTransferController(logger)
-    app_controller = AppController(logger, connection_manager, repository, data_transfer_controller)
-    app_controller.run()
+    def clear_screen(self):
+        "Limpia la pantalla de la consola."
+        if platform.system() == "Windows":
+            os.system("cls")
+        else:
+            os.system("clear")
