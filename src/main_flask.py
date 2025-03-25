@@ -7,6 +7,10 @@ import pymysql
 
 app = Flask(__name__, template_folder="views")
 
+@app.route("/PanelControlModbus")
+def index():
+    return render_template("PanelControlModbus.html")
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -14,7 +18,6 @@ def index():
 @app.route("/fetch_data")
 def fetch_data():
     try:
-        # Ajusta las credenciales según tu entorno
         conn = pymysql.connect(host="localhost", user="root", password="12345678", db="novus",
                                cursorclass=pymysql.cursors.DictCursor)
         cursor = conn.cursor()
