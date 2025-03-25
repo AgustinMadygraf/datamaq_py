@@ -1,6 +1,5 @@
 """
-Path: run.py
-Punto de entrada principal del programa.
+Path: run_flask.py
 """
 from src.main_flask import run
 

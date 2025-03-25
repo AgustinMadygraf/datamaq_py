@@ -8,7 +8,7 @@ import pymysql
 app = Flask(__name__, template_folder="views")
 
 @app.route("/PanelControlModbus")
-def index():
+def panel_control():
     return render_template("PanelControlModbus.html")
 
 @app.route("/")
