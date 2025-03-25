@@ -14,16 +14,12 @@ logger = LoggerService()
 
 # Verificar si el archivo .env existe
 if not os.path.exists('.env'):
-    logger.error("El archivo .env no existe. Por favor, cree el archivo .env con la configuración necesaria.")
-    while True:
-        user_input = input("Escriba 'acepto' para continuar, deberá crear '.env' con las credenciales ")
-        if user_input == "acepto":
-            break
-        else:
-            print("Debe aceptar para continuar.")
+    logger.error("El archivo .env no existe. Deteniendo la ejecución.")
+    raise FileNotFoundError("El archivo .env no existe. Cree el archivo .env con la configuración necesaria.")
 
 # Cargamos las variables de entorno desde el archivo .env
 load_dotenv()
+logger.info("Variables de entorno cargadas correctamente")
 
 class SQLAlchemyDatabaseRepository(IDatabaseRepository):
     "Implementación de la interfaz IDatabaseRepository utilizando SQLAlchemy. Utilizado para inyección de dependencias en DatabaseConnector."
