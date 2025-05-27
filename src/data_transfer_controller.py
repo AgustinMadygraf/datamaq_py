@@ -10,7 +10,7 @@ from datetime import datetime
 import subprocess
 import pymysql
 from utils.logging.dependency_injection import get_logger
-from src.db_operations import SQLAlchemyDatabaseRepository
+from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseConnectionError
 
 logger = get_logger()
 
@@ -87,38 +87,48 @@ class ProductionLogTransferService(BaseDataTransferService):
         """
         Ejecuta la transferencia de datos para ProductionLog.
         """
-        conn = SQLAlchemyDatabaseRepository()
-        # Se obtiene la conexión en bruto si es necesario.
-        if not hasattr(conn, "cursor"):
-            conn = conn.raw_connection()
-        if not conn:
-            self.logger.error("No se pudo establecer conexión con la base de datos.")
-            return
+        try:
+            conn = SQLAlchemyDatabaseRepository()
+            # Se obtiene la conexión en bruto si es necesario.
+            if not hasattr(conn, "cursor"):
+                try:
+                    conn = conn.raw_connection()
+                except DatabaseConnectionError as e:
+                    self.logger.error(f"Error de conexión: {e}")
+                    return
+            if not conn:
+                self.logger.error("No se pudo establecer conexión con la base de datos.")
+                return
 
-        with conn.cursor() as cursor:
-            self.logger.info("Iniciando transferencia de ProductionLog.")
-            unixtime = self._get_unix_time()
-            consulta_select, consulta_insert, num_filas = self.get_queries()
-            datos_originales = self.obtener_datos(cursor, consulta_select)
-            datos = []
-            if datos_originales:
-                datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
+            with conn.cursor() as cursor:
+                self.logger.info("Iniciando transferencia de ProductionLog.")
+                unixtime = self._get_unix_time()
+                consulta_select, consulta_insert, num_filas = self.get_queries()
+                datos_originales = self.obtener_datos(cursor, consulta_select)
+                datos = []
+                if datos_originales:
+                    datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
 
-            if datos:
-                # Se verifica que no exista ya un registro para el mismo unixtime.
-                cursor.execute(
-                    "SELECT COUNT(*) FROM ProductionLog WHERE unixtime = %s", (unixtime,)
-                )
-                result = cursor.fetchone()
-                if result and result[0] == 0:
-                    self.insertar_datos(conn, datos, consulta_insert, num_filas)
-                    conn.commit()
-                    self.logger.info("Transferencia de ProductionLog completada exitosamente.")
+                if datos:
+                    # Se verifica que no exista ya un registro para el mismo unixtime.
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM ProductionLog WHERE unixtime = %s", (unixtime,)
+                    )
+                    result = cursor.fetchone()
+                    if result and result[0] == 0:
+                        self.insertar_datos(conn, datos, consulta_insert, num_filas)
+                        conn.commit()
+                        self.logger.info("Transferencia de ProductionLog completada exitosamente.")
+                    else:
+                        self.logger.warning("Registro duplicado para unixtime %s.", unixtime)
                 else:
-                    self.logger.warning("Registro duplicado para unixtime %s.", unixtime)
-            else:
-                self.logger.warning("No se obtuvieron datos para ProductionLog.")
-        conn.close()
+                    self.logger.warning("No se obtuvieron datos para ProductionLog.")
+        except pymysql.err.OperationalError as e:
+            self.logger.error(f"Error operacional de MySQL: {e}")
+        except Exception as e:
+            self.logger.error(f"Error inesperado en la transferencia de ProductionLog: {e}")
+        finally:
+            conn.close()
 
 class IntervalProductionTransferService(BaseDataTransferService):
     """
@@ -146,37 +156,47 @@ class IntervalProductionTransferService(BaseDataTransferService):
         """
         Ejecuta la transferencia de datos para intervalproduction.
         """
-        conn = SQLAlchemyDatabaseRepository()
-        if not hasattr(conn, "cursor"):
-            conn = conn.raw_connection()
-        if not conn:
-            self.logger.error("No se pudo establecer conexión para intervalproduction.")
-            return
+        try:
+            conn = SQLAlchemyDatabaseRepository()
+            if not hasattr(conn, "cursor"):
+                try:
+                    conn = conn.raw_connection()
+                except DatabaseConnectionError as e:
+                    self.logger.error(f"Error de conexión para intervalproduction: {e}")
+                    return
+            if not conn:
+                self.logger.error("No se pudo establecer conexión para intervalproduction.")
+                return
 
-        with conn.cursor() as cursor:
-            self.logger.info("Iniciando transferencia de intervalproduction.")
-            unixtime = self._get_unix_time()
-            consulta_select, consulta_insert, num_filas = self.get_queries()
-            datos_originales = self.obtener_datos(cursor, consulta_select)
-            datos = []
-            if datos_originales:
-                datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
+            with conn.cursor() as cursor:
+                self.logger.info("Iniciando transferencia de intervalproduction.")
+                unixtime = self._get_unix_time()
+                consulta_select, consulta_insert, num_filas = self.get_queries()
+                datos_originales = self.obtener_datos(cursor, consulta_select)
+                datos = []
+                if datos_originales:
+                    datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
 
-            if datos:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", 
-                    (unixtime,)
-                )
-                result = cursor.fetchone()
-                if result and result[0] == 0:
-                    self.insertar_datos(conn, datos, consulta_insert, num_filas)
-                    conn.commit()
-                    self.logger.info("Transferencia de intervalproduction completada exitosamente.")
+                if datos:
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = %s", 
+                        (unixtime,)
+                    )
+                    result = cursor.fetchone()
+                    if result and result[0] == 0:
+                        self.insertar_datos(conn, datos, consulta_insert, num_filas)
+                        conn.commit()
+                        self.logger.info("Transferencia de intervalproduction completada exitosamente.")
+                    else:
+                        self.logger.warning("Registro duplicado para unixtime %s.", unixtime)
                 else:
-                    self.logger.warning("Registro duplicado para unixtime %s.", unixtime)
-            else:
-                self.logger.warning("No se obtuvieron datos para intervalproduction.")
-        conn.close()
+                    self.logger.warning("No se obtuvieron datos para intervalproduction.")
+        except pymysql.err.OperationalError as e:
+            self.logger.error(f"Error operacional de MySQL en intervalproduction: {e}")
+        except Exception as e:
+            self.logger.error(f"Error inesperado en la transferencia de intervalproduction: {e}")
+        finally:
+            conn.close()
 
 class PHPDataTransferService:
     """

@@ -38,9 +38,12 @@ class AppController:
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
         self.logger.debug("Ejecutando iteración del bucle principal.")
-        process_modbus_operations()
-        print("")  # Se puede remover o delegar a la vista según convenga
-        main_transfer_controller()
+        try:
+            process_modbus_operations()
+            print("")  # Se puede remover o delegar a la vista según convenga
+            main_transfer_controller()
+        except Exception as e:
+            self.logger.error(f"Error en operaciones principales: {e}")
         time.sleep(1)
         clear_screen()  # se utiliza la función de la vista
 

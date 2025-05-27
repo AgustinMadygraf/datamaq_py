@@ -63,7 +63,11 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         Retorna una conexión en bruto (DBAPI connection) desde el engine.
         Esto permite compatibilidad con código legado que utiliza métodos de cursor.
         """
-        return self.engine.raw_connection()
+        try:
+            return self.engine.raw_connection()
+        except Exception as e:
+            logger.error(f"Error al obtener una conexión raw desde el engine: {e}")
+            raise DatabaseConnectionError(f"Error al conectar con la base de datos: {e}") from e
 
     def ejecutar_consulta(self, consulta: str, parametros: dict) -> any:
         """
@@ -138,4 +142,8 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
 
 class DatabaseUpdateError(Exception):
     """Excepción para errores en la actualización de la base de datos."""
+    pass
+
+class DatabaseConnectionError(Exception):
+    """Excepción para errores en la conexión a la base de datos."""
     pass
