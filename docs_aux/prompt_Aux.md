@@ -48,7 +48,6 @@ Sí, realiza la tarea que mencionas
 ```
 ¿Que dudas tenés sobre la implementación exitosa de esta mejora?
 Intenta responder las dudas.
-Si no tenés dudas, procederemos a implementar la mejora.
-Si  tenés dudas sin resolver, primero intentaremos resolver las dudas
+Si no tenés dudas, procederemos a armar un plan de refactorización. Si  tenés dudas sin resolver, primero intentaremos resolver las dudas
 ```
 
