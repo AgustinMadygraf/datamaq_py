@@ -4,13 +4,7 @@
 # - No dependen de infraestructura ni frameworks externos.
 # - Operan sobre entidades y objetos de valor del dominio.
 
-class ProduccionService:
-    """Servicio de dominio para operaciones de producción."""
-    def calcular_eficiencia(self, datos):
-        # Lógica de negocio pura
-        pass
-
-# Agregar aquí otros servicios según el dominio del sistema.
+# Eliminar clase ProduccionService y su método calcular_eficiencia (no referenciados)
 
 class ProductionLogTransferService:
     """

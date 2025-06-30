@@ -44,8 +44,8 @@ class AppController:
                 repository.actualizar_registro(consulta_insercion, parametros)
 
         try:
-            run_modbus_processing()
-            print("")
+            run_modbus_processing(repository)
+            self.logger.info("Procesamiento Modbus ejecutado.")
             main_transfer_controller(self.logger, obtener_datos, insertar_datos, repository)
         except Exception as e:
             self.logger.error(f"Error en operaciones principales: {e}")

@@ -8,17 +8,6 @@ from src.domain.ports.database_repository import IDatabaseRepository
 # - No contienen lógica de infraestructura.
 # - Representan acciones o procesos clave del sistema.
 
-class TransferirDatosCasoUso:
-    """Caso de uso para transferir datos entre sistemas."""
-    def __init__(self, servicio_transferencia):
-        self.servicio_transferencia = servicio_transferencia
-
-    def ejecutar(self, datos):
-        # Orquestar la transferencia usando el servicio de dominio
-        self.servicio_transferencia.transferir(datos)
-
-# Agregar aquí otros casos de uso según los procesos del sistema.
-
 class DataTransferController:
     """
     Controlador que orquesta la transferencia de datos:

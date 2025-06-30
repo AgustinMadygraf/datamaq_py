@@ -54,6 +54,8 @@ Las dependencias siempre fluyen hacia adentro. Las capas internas no conocen det
 - El acceso a base de datos está unificado en `sqlalchemy_repository.py`.
 - El código muerto y duplicado ha sido eliminado.
 - La lógica de grabación periódica está centralizada y desacoplada.
+- Se eliminaron clases y métodos no referenciados en Application y Domain (`TransferirDatosCasoUso`, `ProduccionService`).
+- El adaptador Modbus ahora implementa una función real de lectura (`process_modbus_operations`).
 
 ## [2025-06-30] Refactor: Inversión de Dependencias Application → Infrastructure
 
