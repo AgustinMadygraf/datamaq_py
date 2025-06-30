@@ -3,8 +3,8 @@ Path: src/core/modbus_processor.py
 Este módulo se encarga de procesar las operaciones Modbus siguiendo principios SOLID y POO.
 """
 
-import minimalmodbus
-import serial.tools.list_ports
+import minimalmodbus  # type: ignore
+import serial.tools.list_ports  # type: ignore
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from src.domain.ports.database_repository import IDatabaseRepository
 from utils.logging.dependency_injection import get_logger

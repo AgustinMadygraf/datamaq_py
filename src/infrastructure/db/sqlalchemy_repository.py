@@ -1,8 +1,8 @@
 from src.domain.ports.database_repository import IDatabaseRepository
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text   # type: ignore
+from sqlalchemy.orm import sessionmaker  # type: ignore
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # type: ignore
 from utils.logging.dependency_injection import get_logger
 from src.config import Config
 
