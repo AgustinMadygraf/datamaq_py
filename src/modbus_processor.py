@@ -6,7 +6,7 @@ Este módulo se encarga de procesar las operaciones Modbus siguiendo principios 
 import minimalmodbus
 import serial.tools.list_ports
 from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
-from src.interfaces import IDatabaseRepository
+from src.domain.entities import IDatabaseRepository
 from utils.logging.dependency_injection import get_logger
 
 logger = get_logger()

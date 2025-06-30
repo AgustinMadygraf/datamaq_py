@@ -24,12 +24,14 @@ class DataTransferController:
     Controlador que orquesta la transferencia de datos:
       - Verifica si es el momento de transferir (según la hora actual).
       - Ejecuta la transferencia de ProductionLog e intervalproduction.
+      - Controla que solo se grabe una vez cada 5 minutos.
     """
-    def __init__(self, log):
+    def __init__(self, log, repository):
         self.logger = log
-        repository = SQLAlchemyDatabaseRepository()
+        self.repository = repository
         self.production_service = ProductionLogTransferService(log, repository)
         self.interval_service = IntervalProductionTransferService(log, repository)
+        self._ultimo_guardado = None  # Timestamp del último guardado exitoso
 
     def es_tiempo_cercano_multiplo_cinco(self, tolerancia=5):
         ahora = datetime.now()
@@ -45,16 +47,24 @@ class DataTransferController:
         return cercano_a_multiplo
 
     def run_transfer(self, obtener_datos, insertar_datos):
+        from datetime import timedelta
+        ahora = datetime.now()
         if self.es_tiempo_cercano_multiplo_cinco():
-            self.logger.info("Iniciando transferencia de datos.")
-            unixtime = int(datetime.now().timestamp())
-            self.production_service.transfer(unixtime, obtener_datos, insertar_datos)
-            self.interval_service.transfer(unixtime, obtener_datos, insertar_datos)
+            if self._ultimo_guardado is None or (ahora - self._ultimo_guardado) >= timedelta(minutes=5):
+                self.logger.info("Iniciando transferencia de datos.")
+                unixtime = int(ahora.timestamp())
+                self.production_service.transfer(unixtime, obtener_datos, insertar_datos)
+                self.interval_service.transfer(unixtime, obtener_datos, insertar_datos)
+                self._ultimo_guardado = ahora
+            else:
+                self.logger.info(
+                    f"Ya se grabó en esta ventana de 5 minutos. Último guardado: {self._ultimo_guardado}"
+                )
         else:
             self.logger.info(
                 "No es momento de transferir datos. Esperando la próxima verificación."
             )
 
-def main_transfer_controller(logger, obtener_datos, insertar_datos):
-    controller = DataTransferController(logger)
+def main_transfer_controller(logger, obtener_datos, insertar_datos, repository):
+    controller = DataTransferController(logger, repository)
     controller.run_transfer(obtener_datos, insertar_datos)

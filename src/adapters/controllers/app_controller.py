@@ -42,7 +42,7 @@ class AppController:
         try:
             process_modbus_operations()
             print("")
-            main_transfer_controller(self.logger, obtener_datos, insertar_datos)
+            main_transfer_controller(self.logger, obtener_datos, insertar_datos, repository)
         except Exception as e:
             self.logger.error(f"Error en operaciones principales: {e}")
         time.sleep(1)
