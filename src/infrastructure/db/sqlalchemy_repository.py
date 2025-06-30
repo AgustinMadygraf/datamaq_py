@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text   # type: ignore
 from sqlalchemy.orm import sessionmaker  # type: ignore
 import os
 from dotenv import load_dotenv  # type: ignore
-from utils.logging.dependency_injection import get_logger
+from src.crosscutting.logging.dependency_injection import get_logger
 from src.config import Config
 
 # Cargamos las variables de entorno desde el archivo .env

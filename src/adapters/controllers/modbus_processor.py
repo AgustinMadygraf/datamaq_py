@@ -7,7 +7,7 @@ import serial.tools.list_ports  # type: ignore
 
 from src.domain.ports.database_repository import IDatabaseRepository
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository, DatabaseUpdateError
-from utils.logging.dependency_injection import get_logger
+from src.crosscutting.logging.dependency_injection import get_logger
 
 logger = get_logger()
 

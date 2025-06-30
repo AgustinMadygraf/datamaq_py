@@ -8,7 +8,7 @@ from src.domain.ports.database_repository import IDatabaseRepository  # Nuevo: p
 
 class AppController:
     def __init__(self, logger=None, repository: IDatabaseRepository = None):
-        from utils.logging.dependency_injection import get_logger
+        from src.crosscutting.logging.dependency_injection import get_logger
         self.logger = logger or get_logger()
         self.repository = repository or SQLAlchemyDatabaseRepository()
         self.running = True

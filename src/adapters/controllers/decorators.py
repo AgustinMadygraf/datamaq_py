@@ -2,7 +2,7 @@
 Decoradores para logging y manejo centralizado de errores en adaptadores/controladores.
 """
 import functools
-from utils.logging.dependency_injection import get_logger
+from src.crosscutting.logging.dependency_injection import get_logger
 
 logger = get_logger()
 
