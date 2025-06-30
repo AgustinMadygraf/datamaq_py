@@ -4,11 +4,13 @@ from src.application.use_cases import main_transfer_controller
 from src.adapters.controllers.app_view import clear_screen
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository
 from src.adapters.controllers.decorators import log_and_handle_errors
+from src.domain.entities import IDatabaseRepository  # Nuevo: para tipado
 
 class AppController:
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, repository: IDatabaseRepository = None):
         from utils.logging.dependency_injection import get_logger
         self.logger = logger or get_logger()
+        self.repository = repository or SQLAlchemyDatabaseRepository()
         self.running = True
 
     def setup_signal_handlers(self):
@@ -31,7 +33,7 @@ class AppController:
     @log_and_handle_errors
     def execute_main_operations(self):
         self.logger.debug("Ejecutando iteración del bucle principal.")
-        repository = SQLAlchemyDatabaseRepository()
+        repository = self.repository  # Usar el repositorio inyectado
 
         def obtener_datos(consulta):
             return repository.ejecutar_consulta(consulta, {})

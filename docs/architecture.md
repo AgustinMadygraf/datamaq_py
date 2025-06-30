@@ -33,6 +33,13 @@ Las dependencias siempre fluyen hacia adentro. Las capas internas no conocen det
 - El código muerto y duplicado ha sido eliminado.
 - La lógica de grabación periódica está centralizada y desacoplada.
 
+## [2025-06-30] Refactor: Inversión de Dependencias Application → Infrastructure
+
+- La capa Application (`use_cases.py`) ahora depende solo de la interfaz `IDatabaseRepository` definida en Domain.
+- La implementación concreta (`SQLAlchemyDatabaseRepository`) se inyecta desde el punto de entrada (`AppController`).
+- Se eliminó el import directo de infraestructura en Application.
+- Cumple Clean Architecture: Application es independiente de detalles de infraestructura.
+
 ---
 
 Actualiza este documento si se agregan nuevas capas, adaptadores o flujos relevantes.

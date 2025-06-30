@@ -1,6 +1,5 @@
 from datetime import datetime
 from src.domain.services import ProductionLogTransferService, IntervalProductionTransferService
-from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository
 
 # Casos de uso de la aplicación
 # Definición de casos de uso:
@@ -28,7 +27,7 @@ class DataTransferController:
     """
     def __init__(self, log, repository):
         self.logger = log
-        self.repository = repository
+        self.repository = repository  # Debe ser IDatabaseRepository
         self.production_service = ProductionLogTransferService(log, repository)
         self.interval_service = IntervalProductionTransferService(log, repository)
         self._ultimo_guardado = None  # Timestamp del último guardado exitoso
