@@ -5,7 +5,7 @@ Este módulo se encarga de procesar las operaciones Modbus siguiendo principios 
 
 import minimalmodbus
 import serial.tools.list_ports
-from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
+from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from src.domain.entities import IDatabaseRepository
 from utils.logging.dependency_injection import get_logger
 
@@ -189,6 +189,7 @@ class ModbusProcessor:
         params = {'valor': value, 'direccion': address}
         return query, params
 
+# El módulo process_modbus_operations debe ser privado y solo usado por run_modbus_processing
 def process_modbus_operations(repository: IDatabaseRepository = None):
     """
     Función de orquestación que inicializa la conexión, procesa las operaciones

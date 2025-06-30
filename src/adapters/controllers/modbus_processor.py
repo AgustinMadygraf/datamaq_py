@@ -8,7 +8,7 @@ import serial.tools.list_ports
 from src.domain.entities import IDatabaseRepository
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from utils.logging.dependency_injection import get_logger
-from src.modbus_processor import process_modbus_operations
+# from src.modbus_processor import process_modbus_operations  # Eliminado, solo usar run_modbus_processing
 
 logger = get_logger()
 
@@ -60,4 +60,5 @@ def run_modbus_processing(repository: IDatabaseRepository = None):
         logger.error(f"Error de conexión Modbus: {e}")
         return
 
-    process_modbus_operations(instrument, repository, logger)
+    # Aquí solo se debe llamar a la función interna, sin pasar instrument ni logger
+    # process_modbus_operations(repository)  # Si es necesario, pero no pasar más argumentos

@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 from utils.logging.dependency_injection import get_logger
+from src.config import Config
 
 # Cargamos las variables de entorno desde el archivo .env
 load_dotenv()
@@ -23,11 +24,11 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
     def get_db_config(self):
         try:
             return {
-                'host': os.getenv('DB_HOST'),
-                'user': os.getenv('DB_USER'),
-                'password': os.getenv('DB_PASSWORD'),
-                'db': os.getenv('DB_NAME'),
-                'port': os.getenv('DB_PORT', '3306')
+                'host': Config.DB_HOST,
+                'user': Config.DB_USER,
+                'password': Config.DB_PASSWORD,
+                'db': Config.DB_NAME,
+                'port': Config.DB_PORT
             }
         except Exception as e:
             logger.error(f"Error al obtener la configuración de la base de datos: {e}")
@@ -35,11 +36,7 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
 
     def obtener_engine(self) -> any:
         try:
-            config = self.get_db_config()
-            conn_str = (
-                f"mysql+pymysql://{config['user']}:{config['password']}@"
-                f"{config['host']}:{config['port']}/{config['db']}"
-            )
+            conn_str = Config.db_url()
             engine = create_engine(conn_str, pool_pre_ping=True)
             return engine
         except Exception as e:

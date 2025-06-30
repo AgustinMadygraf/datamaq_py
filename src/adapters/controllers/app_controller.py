@@ -1,8 +1,9 @@
 import time
-from src.adapters.controllers.modbus_processor import process_modbus_operations
+from src.adapters.controllers.modbus_processor import run_modbus_processing
 from src.application.use_cases import main_transfer_controller
 from src.adapters.controllers.app_view import clear_screen
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository
+from src.adapters.controllers.decorators import log_and_handle_errors
 
 class AppController:
     def __init__(self, logger=None):
@@ -27,6 +28,7 @@ class AppController:
         self.logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")
         self.running = False
 
+    @log_and_handle_errors
     def execute_main_operations(self):
         self.logger.debug("Ejecutando iteración del bucle principal.")
         repository = SQLAlchemyDatabaseRepository()
@@ -40,7 +42,7 @@ class AppController:
                 repository.actualizar_registro(consulta_insercion, parametros)
 
         try:
-            process_modbus_operations()
+            run_modbus_processing()
             print("")
             main_transfer_controller(self.logger, obtener_datos, insertar_datos, repository)
         except Exception as e:
