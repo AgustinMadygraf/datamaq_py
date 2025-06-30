@@ -1,20 +1,18 @@
-"""
-Controlador principal que gestiona el ciclo de la aplicación.
-"""
 import time
-import signal
-import platform
-from utils.logging.dependency_injection import get_logger
 from src.adapters.controllers.modbus_processor import process_modbus_operations
 from src.application.use_cases import main_transfer_controller
 from src.adapters.controllers.app_view import clear_screen
+from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository
 
 class AppController:
     def __init__(self, logger=None):
+        from utils.logging.dependency_injection import get_logger
         self.logger = logger or get_logger()
         self.running = True
 
     def setup_signal_handlers(self):
+        import signal
+        import platform
         current_os = platform.system()
         self.logger.info(f"Sistema operativo detectado: {current_os}")
         self.logger.debug(f"Sistema operativo detectado: {current_os}")
@@ -31,12 +29,16 @@ class AppController:
 
     def execute_main_operations(self):
         self.logger.debug("Ejecutando iteración del bucle principal.")
+        repository = SQLAlchemyDatabaseRepository()
+
         def obtener_datos(consulta):
-            # Implementar o delegar a la infraestructura real
-            return []
+            return repository.ejecutar_consulta(consulta, {})
+
         def insertar_datos(datos, consulta_insercion, campos):
-            # Implementar o delegar a la infraestructura real
-            pass
+            for fila in datos:
+                parametros = dict(zip(campos, fila))
+                repository.actualizar_registro(consulta_insercion, parametros)
+
         try:
             process_modbus_operations()
             print("")

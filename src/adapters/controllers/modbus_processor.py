@@ -8,6 +8,7 @@ import serial.tools.list_ports
 from src.domain.entities import IDatabaseRepository
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from utils.logging.dependency_injection import get_logger
+from src.modbus_processor import process_modbus_operations
 
 logger = get_logger()
 
@@ -48,10 +49,9 @@ class ModbusConnectionManager:
                 raise ModbusConnectionError(error_msg)
 
 
-def process_modbus_operations(repository: IDatabaseRepository = None):
+def run_modbus_processing(repository: IDatabaseRepository = None):
     """
-    Función de orquestación que inicializa la conexión, procesa las operaciones
-    y actualiza la base de datos.
+    Función de orquestación que inicializa la conexión y procesa las operaciones
     """
     connection_manager = ModbusConnectionManager(logger)
     try:
@@ -60,13 +60,4 @@ def process_modbus_operations(repository: IDatabaseRepository = None):
         logger.error(f"Error de conexión Modbus: {e}")
         return
 
-    # Aquí deberías definir ModbusDevice y ModbusProcessor o importarlos si ya existen
-    # modbus_device = ModbusDevice(instrument, logger)
-    # if repository is None:
-    #     repository = SQLAlchemyDatabaseRepository()
-    # processor = ModbusProcessor(modbus_device, repository, logger)
-    # try:
-    #     processor.process()
-    # except (ModbusReadError, DatabaseUpdateError) as e:
-    #     logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")
-    pass
+    process_modbus_operations(instrument, repository, logger)
