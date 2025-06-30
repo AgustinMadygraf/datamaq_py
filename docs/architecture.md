@@ -20,6 +20,28 @@ DigiRail sigue los principios de Arquitectura Limpia, separando responsabilidade
 ```
 Las dependencias siempre fluyen hacia adentro. Las capas internas no conocen detalles de las externas.
 
+## Ejemplo de flujo de dependencias desacoplado
+
+```
+[Infraestructura]
+  SQLAlchemyDatabaseRepository
+        │
+        ▼
+[Adaptador]
+  AppController
+        │
+        ▼
+[Aplicación]
+  DataTransferController (usa IDatabaseRepository)
+        │
+        ▼
+[Dominio]
+  IDatabaseRepository (puerto)
+```
+
+- Para agregar una nueva infraestructura (ej. otro motor DB), implementar `IDatabaseRepository` y pasar la instancia en el punto de entrada.
+- Los casos de uso y controladores nunca deben importar implementaciones concretas, solo la interfaz.
+
 ## Preocupaciones Transversales
 - Logging y manejo de errores centralizados mediante decoradores en adaptadores.
 - Configuración centralizada en `src/config.py`.

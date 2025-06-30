@@ -40,7 +40,6 @@ class ProductionLogTransferService:
             if not self.repository:
                 self.logger.error("No se pudo establecer conexión con la base de datos.")
                 return
-            self.logger.info("Iniciando transferencia de ProductionLog.")
             consulta_select, consulta_insert, campos = self.get_queries()
             datos_originales = obtener_datos(consulta_select)
             datos = []
@@ -52,7 +51,6 @@ class ProductionLogTransferService:
                 )
                 if result and result[0][0] == 0:
                     insertar_datos(datos, consulta_insert, campos)
-                    self.logger.info("Transferencia de ProductionLog completada exitosamente.")
                 else:
                     self.logger.warning("Registro duplicado para unixtime %s.", unixtime)
             else:
@@ -90,7 +88,6 @@ class IntervalProductionTransferService:
             if not self.repository:
                 self.logger.error("No se pudo establecer conexión con la base de datos.")
                 return
-            self.logger.info("Iniciando transferencia de intervalproduction.")
             consulta_select, consulta_insert, campos = self.get_queries()
             datos_originales = obtener_datos(consulta_select)
             datos = []
@@ -98,7 +95,6 @@ class IntervalProductionTransferService:
                 datos = [(unixtime,) + tuple(int(x) for x in fila) for fila in datos_originales]
             if datos:
                 insertar_datos(datos, consulta_insert, campos)
-                self.logger.info("Transferencia de intervalproduction completada exitosamente.")
             else:
                 self.logger.warning("No se obtuvieron datos para intervalproduction.")
         except Exception as e:

@@ -6,7 +6,7 @@ Este módulo se encarga de procesar las operaciones Modbus siguiendo principios 
 import minimalmodbus
 import serial.tools.list_ports
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository, DatabaseUpdateError
-from src.domain.entities import IDatabaseRepository
+from src.domain.ports.database_repository import IDatabaseRepository
 from utils.logging.dependency_injection import get_logger
 
 logger = get_logger()
@@ -47,13 +47,13 @@ class ModbusConnectionManager:
         device_description = "DigiRail Connect"
         com_port = self.detect_com_port(device_description)
         if com_port:
-            self.logger.info(f"Puerto {device_description} detectado: {com_port}")
+            self.logger.info(f"Puerto {device_description} detectado: {com_port}")  # Útil para trazabilidad
         else:
             # Intentar con "USB-SERIAL CH340"
             device_description = "USB-SERIAL CH340"
             com_port = self.detect_com_port(device_description)
             if com_port:
-                self.logger.info(f"Puerto detectado: {com_port}")
+                self.logger.info(f"Puerto detectado: {com_port}")  # Útil para trazabilidad
             else:
                 error_msg = "No se detectaron puertos COM para el dispositivo."
                 self.logger.error(error_msg)
@@ -63,7 +63,7 @@ class ModbusConnectionManager:
             instrument = minimalmodbus.Instrument(com_port, self.device_address)
             self.logger.info(
                 f"Conexión Modbus establecida en puerto {com_port}, dirección {self.device_address}"
-            )
+            )  # Útil para auditoría de conexiones
             return instrument
         except minimalmodbus.ModbusException as e:
             error_msg = f"Error al configurar el puerto serie: {e}"
@@ -172,12 +172,13 @@ class ModbusProcessor:
         try:
             self.repository.actualizar_registro(query, params)
             self.logger.info(
-                f"Registro actualizado: dirección {address}, "
-                f"descripción: {description}, valor {value}"
+                f"Registro actualizado: dirección {address}, descripción: {description}, valor {value} | "
+                f"Consulta: {query} | Parámetros: {params}"
             )
         except Exception as e:
             self.logger.error(
-                f"Error al actualizar el registro: dirección {address}, {description}: {e}"
+                f"Error al actualizar el registro: dirección {address}, {description}: {e} | "
+                f"Consulta: {query} | Parámetros: {params}"
             )
             raise DatabaseUpdateError(f"Error al actualizar la base de datos: {e}") from e
 

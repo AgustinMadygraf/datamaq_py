@@ -1,5 +1,6 @@
 from datetime import datetime
 from src.domain.services import ProductionLogTransferService, IntervalProductionTransferService
+from src.domain.ports.database_repository import IDatabaseRepository
 
 # Casos de uso de la aplicación
 # Definición de casos de uso:
@@ -25,7 +26,7 @@ class DataTransferController:
       - Ejecuta la transferencia de ProductionLog e intervalproduction.
       - Controla que solo se grabe una vez cada 5 minutos.
     """
-    def __init__(self, log, repository):
+    def __init__(self, log, repository: IDatabaseRepository):
         self.logger = log
         self.repository = repository  # Debe ser IDatabaseRepository
         self.production_service = ProductionLogTransferService(log, repository)
@@ -50,10 +51,12 @@ class DataTransferController:
         ahora = datetime.now()
         if self.es_tiempo_cercano_multiplo_cinco():
             if self._ultimo_guardado is None or (ahora - self._ultimo_guardado) >= timedelta(minutes=5):
-                self.logger.info("Iniciando transferencia de datos.")
+                self.logger.info(f"Iniciando transferencia de datos | unixtime: {int(ahora.timestamp())}")
                 unixtime = int(ahora.timestamp())
                 self.production_service.transfer(unixtime, obtener_datos, insertar_datos)
+                self.logger.info(f"Transferencia ProductionLog completada | unixtime: {unixtime}")
                 self.interval_service.transfer(unixtime, obtener_datos, insertar_datos)
+                self.logger.info(f"Transferencia IntervalProduction completada | unixtime: {unixtime}")
                 self._ultimo_guardado = ahora
             else:
                 self.logger.info(
@@ -61,7 +64,7 @@ class DataTransferController:
                 )
         else:
             self.logger.info(
-                "No es momento de transferir datos. Esperando la próxima verificación."
+                f"No es momento de transferir datos. Esperando la próxima verificación. | ahora: {ahora}"
             )
 
 def main_transfer_controller(logger, obtener_datos, insertar_datos, repository):

@@ -5,7 +5,7 @@ Procesador de operaciones Modbus siguiendo principios SOLID y POO.
 import minimalmodbus
 import serial.tools.list_ports
 
-from src.domain.entities import IDatabaseRepository
+from src.domain.ports.database_repository import IDatabaseRepository
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository, DatabaseUpdateError
 from utils.logging.dependency_injection import get_logger
 # from src.modbus_processor import process_modbus_operations  # Eliminado, solo usar run_modbus_processing

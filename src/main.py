@@ -28,8 +28,10 @@ class MainApplication:
         self.logger.info('Iniciando aplicación "DataMaq"')
 
         # Registrar información del sistema.
+        # (Este log es útil para auditoría, se mantiene)
         self.logger.info(f"Sistema operativo: {platform.system()} {platform.release()}")
         self.logger.info(f"Versión Python: {platform.python_version()}")
+        # (DEBUG solo en modo verbose, se mantiene)
         self.logger.debug("Este mensaje DEBUG solo debería verse en modo verbose")
 
         # Inicializar el gestor de errores.

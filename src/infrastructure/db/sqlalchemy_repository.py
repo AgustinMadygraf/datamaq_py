@@ -1,4 +1,4 @@
-from src.domain.entities import IDatabaseRepository
+from src.domain.ports.database_repository import IDatabaseRepository
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import os
@@ -47,6 +47,9 @@ class SQLAlchemyDatabaseRepository(IDatabaseRepository):
         try:
             result = self.session.execute(text(consulta), parametros)
             rows = result.fetchall()
+            logger.info(
+                f"Consulta ejecutada: {consulta} | Parámetros: {parametros} | Filas obtenidas: {len(rows)}"
+            )
             return rows
         except Exception as e:
             logger.error(

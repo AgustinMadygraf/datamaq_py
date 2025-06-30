@@ -4,7 +4,7 @@ from src.application.use_cases import main_transfer_controller
 from src.adapters.controllers.app_view import clear_screen
 from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository
 from src.adapters.controllers.decorators import log_and_handle_errors
-from src.domain.entities import IDatabaseRepository  # Nuevo: para tipado
+from src.domain.ports.database_repository import IDatabaseRepository  # Nuevo: para tipado
 
 class AppController:
     def __init__(self, logger=None, repository: IDatabaseRepository = None):
@@ -17,17 +17,17 @@ class AppController:
         import signal
         import platform
         current_os = platform.system()
-        self.logger.info(f"Sistema operativo detectado: {current_os}")
+        self.logger.info(f"Sistema operativo detectado: {current_os}")  # Útil para diagnóstico multiplataforma
         self.logger.debug(f"Sistema operativo detectado: {current_os}")
         if current_os != "Windows":
-            self.logger.info("Configurando manejadores de señales para sistema Unix")
+            self.logger.info("Configurando manejadores de señales para sistema Unix")  # Útil solo en Unix
             signal.signal(signal.SIGINT, self.handle_signal)
             signal.signal(signal.SIGTERM, self.handle_signal)
         else:
-            self.logger.info("Sistema Windows detectado, se manejará mediante KeyboardInterrupt")
+            self.logger.info("Sistema Windows detectado, se manejará mediante KeyboardInterrupt")  # Útil para usuarios Windows
 
     def handle_signal(self, signum, _frame):
-        self.logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")
+        self.logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")  # Útil para trazabilidad de apagado
         self.running = False
 
     @log_and_handle_errors
@@ -55,9 +55,9 @@ class AppController:
     def run(self):
         self.setup_signal_handlers()
         try:
-            self.logger.info("Iniciando bucle principal")
+            self.logger.info("Iniciando bucle principal")  # Marca inicio de ciclo principal
             input("Presione Enter para comenzar el bucle principal...")
             while self.running:
                 self.execute_main_operations()
         except KeyboardInterrupt:
-            self.logger.info("Interrupción (Ctrl+C) recibida. Terminando el bucle principal...")
+            self.logger.info("Interrupción (Ctrl+C) recibida. Terminando el bucle principal...")  # Útil para trazabilidad de apagado
