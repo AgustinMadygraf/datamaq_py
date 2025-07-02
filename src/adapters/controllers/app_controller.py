@@ -2,15 +2,15 @@ import time
 from src.adapters.controllers.modbus_processor import run_modbus_processing
 from src.application.use_cases import main_transfer_controller
 from src.adapters.controllers.app_view import clear_screen
-from src.infrastructure.db.sqlalchemy_repository import SQLAlchemyDatabaseRepository
 from src.adapters.controllers.decorators import log_and_handle_errors
-from src.domain.ports.database_repository import IDatabaseRepository  # Nuevo: para tipado
+from src.domain.ports.database_repository import IDatabaseRepository  # Para tipado
+from src.infrastructure.di.repository_factory import get_database_repository  # Nueva factoría
 
 class AppController:
     def __init__(self, logger=None, repository: IDatabaseRepository = None):
         from src.crosscutting.logging.dependency_injection import get_logger
         self.logger = logger or get_logger()
-        self.repository = repository or SQLAlchemyDatabaseRepository()
+        self.repository = repository or get_database_repository()  # Usar factoría
         self.running = True
 
     def setup_signal_handlers(self):

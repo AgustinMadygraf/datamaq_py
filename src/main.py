@@ -10,6 +10,7 @@ from src.crosscutting.logging.logger_configurator import set_debug_verbose
 from src.crosscutting.logging.dependency_injection import get_logger
 from src.crosscutting.logging.error_manager import init_error_manager, critical_error
 from src.adapters.controllers.app_controller import AppController
+from src.infrastructure.di.repository_factory import get_database_repository
 
 class MainApplication:
     " Clase principal de la aplicación. "
@@ -21,7 +22,11 @@ class MainApplication:
             print("Modo debug verbose activado por argumento de línea de comandos")
             
         self.logger = get_logger()
-        self.controller = controller if controller else AppController()
+        if controller:
+            self.controller = controller
+        else:
+            repository = get_database_repository()
+            self.controller = AppController(logger=self.logger, repository=repository)
 
     def initialize(self):
         """Realiza la configuración inicial de la aplicación."""

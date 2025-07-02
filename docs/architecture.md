@@ -64,6 +64,15 @@ Las dependencias siempre fluyen hacia adentro. Las capas internas no conocen det
 - Se eliminó el import directo de infraestructura en Application.
 - Cumple Clean Architecture: Application es independiente de detalles de infraestructura.
 
+## [2025-07-02] Refactor: Factoría de Repositorios e Inyección Explícita
+
+- Se creó `get_database_repository()` en `src/infrastructure/di/repository_factory.py` para centralizar la obtención de repositorios.
+- `AppController` ahora recibe el repositorio por inyección, eliminando el acoplamiento con la infraestructura concreta.
+- El punto de entrada (`main.py`) es responsable de instanciar e inyectar el repositorio y el logger.
+- Se refuerza la independencia de Application y Domain respecto a detalles de infraestructura.
+
+> Si se agregan nuevos repositorios o mecanismos de DI, documentar aquí el patrón y la ubicación de la factoría.
+
 ---
 
 Actualiza este documento si se agregan nuevas capas, adaptadores o flujos relevantes.
