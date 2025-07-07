@@ -3,9 +3,9 @@ Path: src/core/modbus_processor.py
 Este módulo se encarga de procesar las operaciones Modbus siguiendo principios SOLID y POO.
 """
 
-import minimalmodbus
-import serial.tools.list_ports
-from src.db_operations import SQLAlchemyDatabaseRepository, DatabaseUpdateError
+import minimalmodbus  # pylint: disable=import-error
+import serial.tools.list_ports  # pylint: disable=import-error
+from src.db_operations import DatabaseUpdateError
 from src.interfaces import IDatabaseRepository
 from utils.logging.dependency_injection import get_logger
 
@@ -100,6 +100,7 @@ class ModbusDevice:
         """
         return self.safe_read(self.instrument.read_register, register, functioncode=functioncode)
 
+
 class ModbusProcessor:
     """
     Procesa las operaciones Modbus, actualizando la base de datos.
@@ -112,7 +113,12 @@ class ModbusProcessor:
     HR_COUNTER2_LO = 24
     HR_COUNTER2_HI = 25
 
-    def __init__(self, modbus_device: ModbusDevice, repository, modbus_logger):
+    def __init__(self, modbus_device, repository, modbus_logger):
+        """
+        modbus_device: IModbusDevice
+        repository: IDatabaseRepository
+        modbus_logger: Logger
+        """
         self.device = modbus_device
         self.repository = repository
         self.logger = modbus_logger
@@ -128,41 +134,29 @@ class ModbusProcessor:
         """
         Procesa las entradas digitales y actualiza la base de datos.
         """
-        self._process_input(self.D1, "HR_INPUT1_STATE", self.device.read_digital_input)
-        self._process_input(self.D2, "HR_INPUT2_STATE", self.device.read_digital_input)
+        from src.models.modbus_processing_service import procesar_entrada_digital
+        for address, description in [
+            (self.D1, "HR_INPUT1_STATE"),
+            (self.D2, "HR_INPUT2_STATE")
+        ]:
+            reg = procesar_entrada_digital(address, description, self.device.read_digital_input)
+            self._update_database(reg.address, reg.value, reg.description)
 
     def process_high_resolution_registers(self):
         """
         Procesa los registros de alta resolución y actualiza la base de datos.
         """
-        self._process_register(self.HR_COUNTER1_LO, "HR_COUNTER1_LO")
-        self._process_register(self.HR_COUNTER1_HI, "HR_COUNTER1_HI")
-        self._process_register(self.HR_COUNTER2_LO, "HR_COUNTER2_LO")
-        self._process_register(self.HR_COUNTER2_HI, "HR_COUNTER2_HI")
+        from src.models.modbus_processing_service import procesar_registro_alta_resolucion
+        for register, description in [
+            (self.HR_COUNTER1_LO, "HR_COUNTER1_LO"),
+            (self.HR_COUNTER1_HI, "HR_COUNTER1_HI"),
+            (self.HR_COUNTER2_LO, "HR_COUNTER2_LO"),
+            (self.HR_COUNTER2_HI, "HR_COUNTER2_HI")
+        ]:
+            reg = procesar_registro_alta_resolucion(register, description, self.device.read_register)
+            self._update_database(reg.address, reg.value, reg.description)
 
-    def _process_input(self, address: int, description: str, read_function):
-        """
-        Procesa una entrada digital específica y actualiza la base de datos.
-        """
-        value = read_function(address)
-        if value is not None:
-            self._update_database(address, value, description)
-        else:
-            error_msg = f"Error al leer la entrada en la dirección {address}"
-            self.logger.error(error_msg)
-            raise ModbusReadError(error_msg)
-
-    def _process_register(self, register: int, description: str):
-        """
-        Procesa un registro de alta resolución y actualiza la base de datos.
-        """
-        value = self.device.read_register(register, functioncode=3)
-        if value is not None:
-            self._update_database(register, value, description)
-        else:
-            error_msg = f"Error al leer el registro en la dirección {register}"
-            self.logger.error(error_msg)
-            raise ModbusReadError(error_msg)
+    # _process_input y _process_register eliminados: la lógica de dominio se delega al servicio en models/
 
     def _update_database(self, address: int, value, description: str):
         """
@@ -192,8 +186,10 @@ class ModbusProcessor:
 def process_modbus_operations(repository: IDatabaseRepository = None):
     """
     Función de orquestación que inicializa la conexión, procesa las operaciones
-    y actualiza la base de datos.
+    y actualiza la base de datos. Requiere que se inyecte un repositorio.
     """
+    if repository is None:
+        raise ValueError("Se requiere un repositorio IDatabaseRepository inyectado.")
     connection_manager = ModbusConnectionManager(logger)
     try:
         instrument = connection_manager.establish_connection()
@@ -202,8 +198,6 @@ def process_modbus_operations(repository: IDatabaseRepository = None):
         return
 
     modbus_device = ModbusDevice(instrument, logger)
-    if repository is None:
-        repository = SQLAlchemyDatabaseRepository()
     processor = ModbusProcessor(modbus_device, repository, logger)
     try:
         processor.process()

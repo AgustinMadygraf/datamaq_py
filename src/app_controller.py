@@ -39,7 +39,9 @@ class AppController:
         "Se encarga de ejecutar las operaciones principales del programa."
         self.logger.debug("Ejecutando iteración del bucle principal.")
         try:
-            process_modbus_operations()
+            from src.db_operations import SQLAlchemyDatabaseRepository
+            repo = SQLAlchemyDatabaseRepository()
+            process_modbus_operations(repository=repo)
             print("")  # Se puede remover o delegar a la vista según convenga
             main_transfer_controller()
         except Exception as e:
