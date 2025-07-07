@@ -1,3 +1,4 @@
+from src.utils.logging.decorators import handle_errors, log_execution
 """
 Path: src/app_controller.py
 Este módulo se encarga de controlar el ciclo principal de la aplicación,
@@ -14,8 +15,9 @@ from src.app_view import clear_screen
 
 class AppController:
     """Controlador principal que gestiona el ciclo de la aplicación."""
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, repository=None):
         self.logger = logger or get_logger()
+        self.repository = repository
         self.running = True
 
     def setup_signal_handlers(self):
@@ -35,17 +37,29 @@ class AppController:
         self.logger.info(f"Señal {signum} recibida. Terminando el bucle principal...")
         self.running = False
 
+    @handle_errors()
+    @log_execution()
     def execute_main_operations(self):
         "Se encarga de ejecutar las operaciones principales del programa."
-        self.logger.debug("Ejecutando iteración del bucle principal.")
-        try:
-            from src.db_operations import SQLAlchemyDatabaseRepository
-            repo = SQLAlchemyDatabaseRepository()
-            process_modbus_operations(repository=repo)
-            print("")  # Se puede remover o delegar a la vista según convenga
-            main_transfer_controller()
-        except Exception as e:
-            self.logger.error(f"Error en operaciones principales: {e}")
+        self.logger.debug(
+            "Ejecutando iteración del bucle principal.",
+            extra={"event": "main_loop_iteration", "controller": "AppController"}
+        )
+        repo = self.repository
+        if repo is None:
+            from src.factories import create_repository
+            repo = create_repository()
+        self.logger.info(
+            "Procesando operaciones Modbus.",
+            extra={"event": "process_modbus", "repository": type(repo).__name__}
+        )
+        process_modbus_operations(repository=repo)
+        print("")  # Se puede remover o delegar a la vista según convenga
+        self.logger.info(
+            "Ejecutando transferencia de datos.",
+            extra={"event": "data_transfer", "controller": "AppController"}
+        )
+        main_transfer_controller()
         time.sleep(1)
         clear_screen()  # se utiliza la función de la vista
 

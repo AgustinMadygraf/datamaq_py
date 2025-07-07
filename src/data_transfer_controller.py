@@ -9,7 +9,6 @@ import time
 from datetime import datetime
 from utils.logging.dependency_injection import get_logger
 from src.interfaces import IDatabaseRepository
-from src.db_operations import SQLAlchemyDatabaseRepository
 
 logger = get_logger()
 
@@ -62,8 +61,7 @@ class ProductionLogTransferService(BaseDataTransferService):
     """
     Servicio encargado de transferir los datos de ProductionLog.
     """
-    def __init__(self, log):
-        repository = SQLAlchemyDatabaseRepository()
+    def __init__(self, log, repository: IDatabaseRepository):
         super().__init__(log, repository)
 
     def get_queries(self):
@@ -118,8 +116,7 @@ class IntervalProductionTransferService(BaseDataTransferService):
     """
     Servicio encargado de transferir los datos de intervalproduction.
     """
-    def __init__(self, log):
-        repository = SQLAlchemyDatabaseRepository()
+    def __init__(self, log, repository: IDatabaseRepository):
         super().__init__(log, repository)
 
     def get_queries(self):
@@ -169,10 +166,10 @@ class DataTransferController:
       - Verifica si es el momento de transferir (según la hora actual).
       - Ejecuta la transferencia de ProductionLog e intervalproduction.
     """
-    def __init__(self, log):
+    def __init__(self, log, repository: IDatabaseRepository):
         self.logger = log
-        self.production_service = ProductionLogTransferService(log)
-        self.interval_service = IntervalProductionTransferService(log)
+        self.production_service = ProductionLogTransferService(log, repository)
+        self.interval_service = IntervalProductionTransferService(log, repository)
 
     def es_tiempo_cercano_multiplo_cinco(self, tolerancia=5):
         """
@@ -210,5 +207,7 @@ def main_transfer_controller():
     """
     Función principal que instancia el controlador de transferencia y ejecuta la operación.
     """
-    controller = DataTransferController(logger)
+    from src.db_operations import SQLAlchemyDatabaseRepository
+    repo = SQLAlchemyDatabaseRepository()
+    controller = DataTransferController(logger, repo)
     controller.run_transfer()
