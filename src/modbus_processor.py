@@ -134,7 +134,7 @@ class ModbusProcessor:
         """
         Procesa las entradas digitales y actualiza la base de datos.
         """
-        from src.models.modbus_processing_service import procesar_entrada_digital
+        from src.domain.modbus_processing_service import procesar_entrada_digital
         for address, description in [
             (self.D1, "HR_INPUT1_STATE"),
             (self.D2, "HR_INPUT2_STATE")
@@ -146,7 +146,7 @@ class ModbusProcessor:
         """
         Procesa los registros de alta resolución y actualiza la base de datos.
         """
-        from src.models.modbus_processing_service import procesar_registro_alta_resolucion
+        from src.domain.modbus_processing_service import procesar_registro_alta_resolucion
         for register, description in [
             (self.HR_COUNTER1_LO, "HR_COUNTER1_LO"),
             (self.HR_COUNTER1_HI, "HR_COUNTER1_HI"),

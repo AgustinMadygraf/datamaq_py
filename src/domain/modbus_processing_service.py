@@ -2,9 +2,9 @@
 Servicio de dominio: Procesamiento de entradas y registros Modbus.
 Extrae la lógica de negocio de ModbusProcessor.
 """
-from src.models.modbus_register import ModbusRegister
-from src.models.production_counter import ProductionCounter
-from src.models.interval_production import IntervalProduction
+from src.domain.modbus_register import ModbusRegister
+from src.domain.production_counter import ProductionCounter
+from src.domain.interval_production import IntervalProduction
 from typing import Callable
 
 def procesar_entrada_digital(address: int, description: str, read_function: Callable[[int], int]) -> ModbusRegister:

@@ -1,9 +1,9 @@
 """
 Test de entidades de dominio: Verifica que las entidades no dependen de infraestructura y pueden instanciarse.
 """
-from src.models.modbus_register import ModbusRegister
-from src.models.production_counter import ProductionCounter
-from src.models.interval_production import IntervalProduction
+from src.domain.modbus_register import ModbusRegister
+from src.domain.production_counter import ProductionCounter
+from src.domain.interval_production import IntervalProduction
 
 def test_modbus_register():
     reg = ModbusRegister(address=1, value=123, description="Test", unit="V")
