@@ -2,7 +2,7 @@
 Test de interfaces: Verifica que las interfaces de puertos Modbus y DB se pueden importar y heredar correctamente.
 """
 
-from src.interfaces import IDatabaseRepository, IModbusConnectionManager, IModbusDevice, IModbusProcessor
+from src.application.interfaces import IDatabaseRepository, IModbusConnectionManager, IModbusDevice, IModbusProcessor
 
 # Clases dummy para verificar herencia y métodos abstractos
 class DummyDB(IDatabaseRepository):

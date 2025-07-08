@@ -8,7 +8,7 @@ basada en clases que facilita la extensión y el mantenimiento.
 import time
 from datetime import datetime
 from src.utils.logging.dependency_injection import get_logger
-from src.interfaces import IDatabaseRepository
+from src.application.interfaces import IDatabaseRepository
 
 logger = get_logger()
 

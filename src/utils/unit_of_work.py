@@ -1,7 +1,7 @@
 """
 UnitOfWork: Context manager para transacciones atómicas sobre un repositorio.
 """
-from src.interfaces import IDatabaseRepository
+from src.application.interfaces import IDatabaseRepository
 
 class UnitOfWork:
     def __init__(self, repository: IDatabaseRepository):
