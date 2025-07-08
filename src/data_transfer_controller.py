@@ -214,7 +214,7 @@ def main_transfer_controller():
     """
     Función principal que instancia el controlador de transferencia y ejecuta la operación.
     """
-    from src.db_operations import SQLAlchemyDatabaseRepository
+    from src.infrastructure.db_operations import SQLAlchemyDatabaseRepository
     repo = SQLAlchemyDatabaseRepository()
     controller = DataTransferController(logger, repo)
     controller.run_transfer()

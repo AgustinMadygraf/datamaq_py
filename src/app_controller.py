@@ -11,7 +11,7 @@ import platform
 from src.utils.logging.dependency_injection import get_logger
 from src.modbus_processor import process_modbus_operations
 from src.data_transfer_controller import main_transfer_controller
-from src.app_view import clear_screen
+from src.infrastructure.CLI.app_view import clear_screen
 
 class AppController:
     """Controlador principal que gestiona el ciclo de la aplicación."""
@@ -47,7 +47,7 @@ class AppController:
         )
         repo = self.repository
         if repo is None:
-            from src.factories import create_repository
+            from src.infrastructure.factories import create_repository
             repo = create_repository()
         self.logger.info(
             "Procesando operaciones Modbus.",
