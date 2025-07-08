@@ -6,9 +6,9 @@ procesando operaciones Modbus continuamente.
 
 import sys
 import platform
-from utils.logging.logger_configurator import set_debug_verbose
-from utils.logging.dependency_injection import get_logger
-from utils.logging.error_manager import init_error_manager, critical_error
+from src.utils.logging.logger_configurator import set_debug_verbose
+from src.utils.logging.dependency_injection import get_logger
+from src.utils.logging.error_manager import init_error_manager, critical_error
 from src.factories import create_repository
 from src.app_controller import AppController
 

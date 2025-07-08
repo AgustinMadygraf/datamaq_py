@@ -8,7 +8,7 @@ procesando operaciones Modbus y transferencias de datos.
 import time
 import signal
 import platform
-from utils.logging.dependency_injection import get_logger
+from src.utils.logging.dependency_injection import get_logger
 from src.modbus_processor import process_modbus_operations
 from src.data_transfer_controller import main_transfer_controller
 from src.app_view import clear_screen

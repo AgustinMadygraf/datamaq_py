@@ -7,7 +7,7 @@ import minimalmodbus  # pylint: disable=import-error
 import serial.tools.list_ports  # pylint: disable=import-error
 from src.db_operations import DatabaseUpdateError
 from src.interfaces import IDatabaseRepository
-from utils.logging.dependency_injection import get_logger
+from src.utils.logging.dependency_injection import get_logger
 
 logger = get_logger()
 

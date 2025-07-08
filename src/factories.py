@@ -3,7 +3,7 @@ Fábricas centralizadas para la creación de dependencias principales.
 """
 from src.db_operations import SQLAlchemyDatabaseRepository
 from src.modbus_processor import ModbusDevice, ModbusConnectionManager
-from utils.logging.dependency_injection import get_logger
+from src.utils.logging.dependency_injection import get_logger
 from src.data_transfer_controller import DataTransferController
 
 

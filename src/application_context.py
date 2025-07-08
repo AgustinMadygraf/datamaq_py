@@ -3,7 +3,7 @@ ApplicationContext: Gestión centralizada del ciclo de vida de recursos (DB, Mod
 """
 from src.db_operations import SQLAlchemyDatabaseRepository
 from src.modbus_processor import ModbusDevice, ModbusConnectionManager
-from utils.logging.dependency_injection import get_logger
+from src.utils.logging.dependency_injection import get_logger
 
 class ApplicationContext:
     def __init__(self):

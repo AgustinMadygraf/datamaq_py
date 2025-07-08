@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from src.interfaces import IDatabaseRepository
-from utils.logging.dependency_injection import get_logger
+from src.utils.logging.dependency_injection import get_logger
 
 # Cargamos las variables de entorno desde el archivo .env
 load_dotenv()

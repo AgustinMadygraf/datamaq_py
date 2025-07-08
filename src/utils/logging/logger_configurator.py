@@ -12,7 +12,7 @@ import os
 import sys
 from typing import Optional, List, Any, Dict, Set
 
-from utils.logging.logger_factory import LoggerFactory
+from src.utils.logging.logger_factory import LoggerFactory
 
 # Bandera global para controlar el nivel de detalle del debug
 # Se puede modificar en tiempo de ejecución según el entorno
