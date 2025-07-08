@@ -148,6 +148,13 @@ class IntervalProductionTransferService(BaseDataTransferService):
             self.logger.info("Iniciando transferencia de intervalproduction.")
             unixtime = self._get_unix_time()
             consulta_select, consulta_insert, campos = self.get_queries()
+            # Verificar que no exista ya un registro para el mismo unixtime
+            result = self.repository.ejecutar_consulta(
+                "SELECT COUNT(*) FROM intervalproduction WHERE unixtime = :unixtime", {"unixtime": unixtime}
+            )
+            if result and result[0][0] > 0:
+                self.logger.warning("Registro duplicado para unixtime %s en intervalproduction.", unixtime)
+                return
             datos_originales = self.obtener_datos(consulta_select)
             datos = []
             if datos_originales:
