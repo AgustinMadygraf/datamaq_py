@@ -1,7 +1,5 @@
 """
 Path: src/main.py
-Encapsula la lógica de inicialización y ejecución de la aplicación,
-procesando operaciones Modbus continuamente.
 """
 
 import sys

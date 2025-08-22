@@ -185,21 +185,44 @@ class ModbusProcessor:
 
 def process_modbus_operations(repository: IDatabaseRepository = None):
     """
-    Función de orquestación que inicializa la conexión, procesa las operaciones
-    y actualiza la base de datos. Requiere que se inyecte un repositorio.
+    Orquesta el procesamiento de operaciones Modbus usando Clean Architecture.
     """
     if repository is None:
         raise ValueError("Se requiere un repositorio IDatabaseRepository inyectado.")
-    connection_manager = ModbusConnectionManager(logger)
-    try:
-        instrument = connection_manager.establish_connection()
-    except ModbusConnectionError as e:
-        logger.error(f"Error de conexión Modbus: {e}")
-        return
 
-    modbus_device = ModbusDevice(instrument, logger)
-    processor = ModbusProcessor(modbus_device, repository, logger)
+    from use_cases.process_modbus_operations import ProcessModbusOperationsUseCase, IModbusGateway, IDatabaseGateway
+
+    # Adaptadores concretos para los gateways
+    class ModbusGateway(IModbusGateway):
+        def __init__(self, logger):
+            self.connection_manager = ModbusConnectionManager(logger)
+            try:
+                self.instrument = self.connection_manager.establish_connection()
+            except ModbusConnectionError as e:
+                logger.error(f"Error de conexión Modbus: {e}")
+                self.instrument = None
+            self.logger = logger
+        def read_digital_input(self, address: int):
+            if self.instrument:
+                device = ModbusDevice(self.instrument, self.logger)
+                return device.read_digital_input(address)
+            return None
+        def read_register(self, register: int, functioncode: int = 3):
+            if self.instrument:
+                device = ModbusDevice(self.instrument, self.logger)
+                return device.read_register(register, functioncode=functioncode)
+            return None
+
+    class DatabaseGateway(IDatabaseGateway):
+        def __init__(self, repository):
+            self.repository = repository
+        def actualizar_registro(self, query, params):
+            self.repository.actualizar_registro(query, params)
+
+    modbus_gateway = ModbusGateway(logger)
+    db_gateway = DatabaseGateway(repository)
+    use_case = ProcessModbusOperationsUseCase(modbus_gateway, db_gateway, logger)
     try:
-        processor.process()
-    except (ModbusReadError, DatabaseUpdateError) as e:
+        use_case.execute()
+    except Exception as e:
         logger.error(f"Error durante el procesamiento de operaciones Modbus: {e}")

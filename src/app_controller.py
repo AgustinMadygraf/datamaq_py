@@ -1,8 +1,6 @@
 from src.utils.logging.decorators import handle_errors, log_execution
 """
 Path: src/app_controller.py
-Este módulo se encarga de controlar el ciclo principal de la aplicación,
-procesando operaciones Modbus y transferencias de datos.
 """
 
 import time

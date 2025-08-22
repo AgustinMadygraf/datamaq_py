@@ -1,6 +1,5 @@
 """
 Path: run.py
-Punto de entrada principal del programa.
 """
 
 from src.main import MainApplication

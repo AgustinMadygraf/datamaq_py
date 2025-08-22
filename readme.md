@@ -22,8 +22,8 @@ DigiRail aborda la necesidad crítica de obtener visibilidad en tiempo real y co
 ## 🛠 Instalación
 
 ```bash
-git clone https://github.com/AgustinMadygraf/DigiRail.git
-cd DigiRail
+git clone https://github.com/AgustinMadygraf/DataMaq.git
+cd DataMaq
 pip install -r requirements.txt
 python main.py
 ```
