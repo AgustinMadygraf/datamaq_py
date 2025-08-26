@@ -11,11 +11,14 @@ from src.modbus_processor import process_modbus_operations
 from src.data_transfer_controller import main_transfer_controller
 from src.infrastructure.CLI.app_view import clear_screen
 
+from use_cases.process_modbus_operations import ProcessModbusOperationsUseCase
+
 class AppController:
     """Controlador principal que gestiona el ciclo de la aplicación."""
-    def __init__(self, logger=None, repository=None):
+    def __init__(self, logger=None, repository=None, modbus_use_case=None):
         self.logger = logger or get_logger()
         self.repository = repository
+        self.modbus_use_case = modbus_use_case
         self.running = True
 
     def setup_signal_handlers(self):
@@ -43,15 +46,15 @@ class AppController:
             "Ejecutando iteración del bucle principal.",
             extra={"event": "main_loop_iteration", "controller": "AppController"}
         )
-        repo = self.repository
-        if repo is None:
-            from src.infrastructure.factories import create_repository
-            repo = create_repository()
-        self.logger.info(
-            "Procesando operaciones Modbus.",
-            extra={"event": "process_modbus", "repository": type(repo).__name__}
-        )
-        process_modbus_operations(repository=repo)
+        # Procesar operaciones Modbus usando el caso de uso
+        if self.modbus_use_case:
+            self.logger.info(
+                "Procesando operaciones Modbus (Clean Architecture)",
+                extra={"event": "process_modbus", "controller": "AppController"}
+            )
+            self.modbus_use_case.execute()
+        else:
+            self.logger.warning("No se ha inyectado el caso de uso Modbus. Se omite procesamiento Modbus.")
         print("")  # Se puede remover o delegar a la vista según convenga
         self.logger.info(
             "Ejecutando transferencia de datos.",

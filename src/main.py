@@ -24,7 +24,41 @@ class MainApplication:
             self.controller = controller
         else:
             repo = create_repository()
-            self.controller = AppController(repository=repo)
+            # Importar interfaces y caso de uso
+            from use_cases.process_modbus_operations import ProcessModbusOperationsUseCase, IModbusGateway, IDatabaseGateway
+            from src.modbus_processor import ModbusConnectionManager, ModbusDevice, ModbusConnectionError
+
+            # Adaptador concreto para ModbusGateway
+            class ModbusGateway(IModbusGateway):
+                def __init__(self, logger):
+                    self.connection_manager = ModbusConnectionManager(logger)
+                    try:
+                        self.instrument = self.connection_manager.establish_connection()
+                    except ModbusConnectionError as e:
+                        logger.error(f"Error de conexión Modbus: {e}")
+                        self.instrument = None
+                    self.logger = logger
+                def read_digital_input(self, address: int):
+                    if self.instrument:
+                        device = ModbusDevice(self.instrument, self.logger)
+                        return device.read_digital_input(address)
+                    return None
+                def read_register(self, register: int, functioncode: int = 3):
+                    if self.instrument:
+                        device = ModbusDevice(self.instrument, self.logger)
+                        return device.read_register(register, functioncode=functioncode)
+                    return None
+
+            class DatabaseGateway(IDatabaseGateway):
+                def __init__(self, repository):
+                    self.repository = repository
+                def actualizar_registro(self, query, params):
+                    self.repository.actualizar_registro(query, params)
+
+            modbus_gateway = ModbusGateway(self.logger)
+            db_gateway = DatabaseGateway(repo)
+            modbus_use_case = ProcessModbusOperationsUseCase(modbus_gateway, db_gateway, self.logger)
+            self.controller = AppController(logger=self.logger, repository=repo, modbus_use_case=modbus_use_case)
 
     def initialize(self):
         """Realiza la configuración inicial de la aplicación."""

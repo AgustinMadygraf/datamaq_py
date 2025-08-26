@@ -8,6 +8,9 @@ import serial.tools.list_ports  # pylint: disable=import-error
 from src.infrastructure.db_operations import DatabaseUpdateError
 from src.application.interfaces import IDatabaseRepository
 from src.utils.logging.dependency_injection import get_logger
+from use_cases.process_modbus_operations import ProcessModbusOperationsUseCase, IModbusGateway, IDatabaseGateway
+from src.domain.modbus_processing_service import procesar_entrada_digital
+from src.domain.modbus_processing_service import procesar_registro_alta_resolucion
 
 logger = get_logger()
 
@@ -134,7 +137,6 @@ class ModbusProcessor:
         """
         Procesa las entradas digitales y actualiza la base de datos.
         """
-        from src.domain.modbus_processing_service import procesar_entrada_digital
         for address, description in [
             (self.D1, "HR_INPUT1_STATE"),
             (self.D2, "HR_INPUT2_STATE")
@@ -146,7 +148,6 @@ class ModbusProcessor:
         """
         Procesa los registros de alta resolución y actualiza la base de datos.
         """
-        from src.domain.modbus_processing_service import procesar_registro_alta_resolucion
         for register, description in [
             (self.HR_COUNTER1_LO, "HR_COUNTER1_LO"),
             (self.HR_COUNTER1_HI, "HR_COUNTER1_HI"),
@@ -190,7 +191,6 @@ def process_modbus_operations(repository: IDatabaseRepository = None):
     if repository is None:
         raise ValueError("Se requiere un repositorio IDatabaseRepository inyectado.")
 
-    from use_cases.process_modbus_operations import ProcessModbusOperationsUseCase, IModbusGateway, IDatabaseGateway
 
     # Adaptadores concretos para los gateways
     class ModbusGateway(IModbusGateway):
